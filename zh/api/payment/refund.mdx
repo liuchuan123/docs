@@ -1,0 +1,123 @@
+---
+title: "发起退款"
+description: "POST /merchant/payment/refund 商户发起退款"
+---
+
+
+对已支付的订单发起全额或部分退款。
+
+## 接口信息
+
+| 项目         | 说明                                        |
+| ------------ | ------------------------------------------- |
+| 请求方式     | `POST`                                      |
+| 路径         | `/api/merchant/payment/refund`              |
+| Content-Type | `application/json`                          |
+| 鉴权方式     | RSA 签名                                    |
+
+## 请求参数
+
+```json
+{
+  "refund_time": "20260101120000",
+  "transaction_id": "REF-20260101-001",
+  "original_transaction_id": "ORDER-20260101-001",
+  "currency_code": "USD",
+  "amount": 50.00,
+  "reason": "用户申请退款",
+  "remark": "商品有瑕疵"
+}
+```
+
+### 字段说明
+
+| 字段                      | 类型       | 必填 | 说明                                                         |
+| ------------------------- | ---------- | ---- | ------------------------------------------------------------ |
+| `refund_time`             | String     | 是   | 退款时间，格式 `yyyyMMddHHmmss`                             |
+| `transaction_id`          | String     | 是   | 商户退款单号，需唯一                                         |
+| `original_transaction_id` | String     | 是   | 原支付商户交易号（创建支付时的 `merchant_transaction_id`）    |
+| `currency_code`           | String     | 是   | 退款币种，通常与支付币种一致                                 |
+| `amount`                  | BigDecimal | 是   | 退款金额，不能超过原订单可退金额                             |
+| `reason`                  | String     | 否   | 退款原因                                                     |
+| `remark`                  | String     | 否   | 退款备注                                                     |
+
+## 响应参数
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "transaction_id": "REF-20260101-001",
+    "order_id": "1000126011700000100001",
+    "status": 1,
+    "error_msg": null,
+    "error_code": null
+  }
+}
+```
+
+| 字段             | 类型    | 说明                                           |
+| ---------------- | ------- | ---------------------------------------------- |
+| `transaction_id` | String  | 商户退款单号                                   |
+| `order_id`       | String  | 关联的订单号                                   |
+| `status`         | Integer | 退款交易状态（见下方状态枚举）                 |
+| `error_msg`      | String  | 错误信息，仅失败时有值                         |
+| `error_code`     | String  | 错误码，仅失败时有值                           |
+
+### 退款交易状态
+
+| 状态码 | 状态     | 说明         |
+| ------ | -------- | ------------ |
+| 0      | 初始化   | 退款已创建   |
+| 1      | 处理中   | 退款处理中   |
+| 2      | 成功     | 退款已完成   |
+| 5      | 已取消   | 退款已取消   |
+| 6      | 失败     | 退款处理失败 |
+
+## 请求示例
+
+<Tabs>
+  <Tab title="cURL">
+
+```bash
+curl -X POST "https://openapi.example.com/api/merchant/payment/refund" \
+  -H "Content-Type: application/json" \
+  -H "X-Merchant-Id: 10001" \
+  -H "X-Timestamp: 1737008400000" \
+  -H "X-Nonce: b4c5d6e7f8" \
+  -H "X-Signature: <RSA_SIGNATURE>" \
+  -d '{
+    "refund_time": "20260101120000",
+    "transaction_id": "REF-20260101-001",
+    "original_transaction_id": "ORDER-20260101-001",
+    "currency_code": "USD",
+    "amount": 50.00,
+    "reason": "用户申请退款",
+    "remark": "商品有瑕疵"
+  }'
+```
+
+  </Tab>
+</Tabs>
+
+## 退款规则
+
+- **部分退款**：退款金额 < 原订单金额，可多次部分退款
+- **全额退款**：累计退款金额 = 原订单金额
+- **不可超额退款**：累计退款金额不能超过原订单金额
+- **已争议订单**：争议中的订单可能无法退款，需先解决争议
+
+## 退款结果通知
+
+退款为异步操作，最终结果通过 Webhook 通知：
+
+- `order.refund.succeeded` — 退款成功
+- `order.refund.failed` — 退款失败
+
+也可以通过 [退款查询](/api/payment/query-refund) 接口主动查询。
+
+## 订单状态变化
+
+- 部分退款后订单状态变为 `PARTIAL_REFUND`（4）
+- 全额退款后订单状态变为 `REFUNDED`（5）

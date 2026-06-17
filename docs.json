@@ -9,6 +9,8 @@
   },
   "favicon": "/favicon.svg",
   "modeToggle": true,
+  "locales": ["zh", "en"],
+  "defaultLocale": "zh",
   "topbarCtaButton": {
     "name": "商户门户",
     "url": "https://portal.example.com",
@@ -103,6 +105,18 @@
         ]
       }
     ]
+  },
+  "mintlify": {
+    "assistant": {
+      "enabled": true,
+      "name": "PMP 助手",
+      "suggestions": [
+        "如何创建支付订单？",
+        "RSA 签名怎么算？",
+        "Webhook 怎么配置和验签？",
+        "沙盒环境怎么测试？"
+      ]
+    }
   },
   "footer": {
     "socials": {}
