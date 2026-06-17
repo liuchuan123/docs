@@ -1,0 +1,198 @@
+---
+title: "创建支付"
+description: "POST /merchant/payment/create 创建支付订单"
+---
+
+# 创建支付
+
+创建支付订单是商户接入的第一步。商户服务端调用此接口生成订单并获得收银台地址。
+
+## 接口信息
+
+| 项目         | 说明                                          |
+| ------------ | --------------------------------------------- |
+| 请求方式     | `POST`                                        |
+| 路径         | `/api/merchant/payment/create`                 |
+| Content-Type | `application/json`                            |
+| 鉴权方式     | RSA 签名（详见 [签名与鉴权](/integration/authentication)） |
+
+## 请求参数
+
+```json
+{
+  "merchant_transaction_id": "TXN20260101001",
+  "amount": 100.00,
+  "currency_code": "USD",
+  "description": "订单描述",
+  "redirect_url": "https://merchant.com/payment/return",
+  "cancel_url": "https://merchant.com/payment/cancel",
+  "products": [
+    {
+      "product_id": "PROD001",
+      "name": "Product Name",
+      "description": "Product description",
+      "price": 100.00,
+      "quantity": 1,
+      "category": "Electronics",
+      "sku": "SKU-001",
+      "url": "https://merchant.com/product/PROD001"
+    }
+  ],
+  "shipping": {
+    "name": "Jane Smith",
+    "address": {
+      "country": "US",
+      "state": "CA",
+      "city": "San Francisco",
+      "street": "1st Street",
+      "zip": "94105"
+    }
+  },
+  "customer": {
+    "full_name": "John Doe",
+    "address": {
+      "country": "US",
+      "state": "CA",
+      "city": "San Francisco",
+      "street": "1st Street",
+      "zip": "94105"
+    }
+  }
+}
+```
+
+### 字段说明
+
+| 字段                         | 类型          | 必填 | 说明                                                         |
+| ---------------------------- | ------------- | ---- | ------------------------------------------------------------ |
+| `merchant_transaction_id`    | String        | 是   | 商户侧订单号，需全局唯一                                     |
+| `amount`                     | BigDecimal    | 是   | 订单金额，> 0，最多两位小数                                  |
+| `currency_code`              | String        | 是   | 币种代码，如 `USD`、`EUR`、`CNY`                             |
+| `description`                | String        | 否   | 订单描述，会展示在收银台页面                                 |
+| `redirect_url`               | String        | 是   | 支付成功后用户跳转回的地址                                   |
+| `cancel_url`                 | String        | 是   | 用户取消支付时的跳转地址                                     |
+| `products`                   | Array         | 是   | 商品列表，至少 1 个                                          |
+| `shipping`                   | Object        | 否   | 收货信息，实物商品时必填                                     |
+| `customer`                   | Object        | 是   | 客户信息                                                     |
+
+### 商品信息（products[]）
+
+| 字段          | 类型       | 必填 | 说明         |
+| ------------- | ---------- | ---- | ------------ |
+| `product_id`  | String     | 是   | 商品 ID      |
+| `name`        | String     | 是   | 商品名称     |
+| `description` | String     | 否   | 商品描述     |
+| `price`       | BigDecimal | 是   | 商品单价     |
+| `quantity`    | Integer    | 是   | 数量         |
+| `category`    | String     | 否   | 商品分类     |
+| `sku`         | String     | 否   | 商品 SKU     |
+| `url`         | String     | 否   | 商品详情链接 |
+
+### 收货信息（shipping）
+
+| 字段      | 类型   | 必填 | 说明         |
+| --------- | ------ | ---- | ------------ |
+| `name`    | String | 是   | 收货人姓名   |
+| `address` | Object | 是   | 收货地址     |
+
+### 地址信息（address）
+
+| 字段      | 类型   | 必填 | 说明   |
+| --------- | ------ | ---- | ------ |
+| `country` | String | 是   | 国家   |
+| `state`   | String | 否   | 州/省  |
+| `city`    | String | 是   | 城市   |
+| `street`  | String | 是   | 街道   |
+| `zip`     | String | 是   | 邮编   |
+
+### 客户信息（customer）
+
+| 字段        | 类型   | 必填 | 说明     |
+| ----------- | ------ | ---- | -------- |
+| `full_name` | String | 是   | 客户姓名 |
+| `address`   | Object | 否   | 客户地址 |
+
+## 响应参数
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "order_id": "1000126011700000100001",
+    "pay_url": "https://checkout.example.com/pay/xxx"
+  }
+}
+```
+
+| 字段       | 类型   | 说明                                              |
+| ---------- | ------ | ------------------------------------------------- |
+| `order_id` | String | 平台生成的订单号，唯一标识                        |
+| `pay_url`  | String | 收银台地址，引导用户跳转到此 URL 完成支付         |
+
+## 错误码
+
+| 错误码 | 说明                         |
+| ------ | ---------------------------- |
+| 0      | 成功                         |
+| 40001  | 参数校验失败                 |
+| 40002  | 商户交易号重复               |
+| 40003  | 签名验证失败                 |
+| 50001  | 系统错误                     |
+
+## 请求示例
+
+<Tabs>
+  <Tab title="cURL">
+
+```bash
+curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
+  -H "Content-Type: application/json" \
+  -H "X-Merchant-Id: 10001" \
+  -H "X-Timestamp: 1737004800000" \
+  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Signature: <RSA_SIGNATURE>" \
+  -d '{
+    "merchant_transaction_id": "ORDER-20260101-001",
+    "amount": 100.00,
+    "currency_code": "USD",
+    "description": "Premium Subscription - Monthly",
+    "redirect_url": "https://merchant.com/payment/return",
+    "cancel_url": "https://merchant.com/payment/cancel",
+    "products": [
+      {
+        "product_id": "PROD001",
+        "name": "Premium Plan",
+        "description": "Monthly premium subscription",
+        "price": 100.00,
+        "quantity": 1,
+        "category": "Subscription"
+      }
+    ],
+    "customer": {
+      "full_name": "John Doe"
+    }
+  }'
+```
+
+  </Tab>
+</Tabs>
+
+## 成功响应示例
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "order_id": "1000126011700000100001",
+    "pay_url": "https://checkout.example.com/pay/1000126011700000100001"
+  }
+}
+```
+
+## 下一步
+
+- 将用户重定向到 `pay_url` 完成支付
+- 配置 [Webhook](/api/webhook/overview) 接收支付结果通知
+- 或调用 [支付查询](/api/payment/query) 接口主动轮询状态

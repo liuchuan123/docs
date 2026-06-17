@@ -1,0 +1,94 @@
+---
+title: "支付查询"
+description: "GET /merchant/order/payment/query/{transactionId} 查询支付订单状态"
+---
+
+# 支付查询
+
+根据商户交易号查询支付订单的当前状态和详细信息。
+
+## 接口信息
+
+| 项目         | 说明                                                |
+| ------------ | --------------------------------------------------- |
+| 请求方式     | `GET`                                               |
+| 路径         | `/api/merchant/order/payment/query/{transactionId}` |
+| Content-Type | —（GET 请求无 Body）                                |
+| 鉴权方式     | RSA 签名（签名原文中 Body 部分为空行）              |
+
+## 路径参数
+
+| 参数            | 类型   | 必填 | 说明                       |
+| --------------- | ------ | ---- | -------------------------- |
+| `transactionId` | String | 是   | 商户交易号（创建支付时传入的 `merchant_transaction_id`） |
+
+## 响应参数
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "platform_transaction_id": "1000126011700000100001",
+    "merchant_transaction_id": "ORDER-20260101-001",
+    "payment_currency_code": "USD",
+    "payment_amount": 100.00,
+    "payment_status": 2,
+    "payment_success_time": "2026-01-01T12:30:00",
+    "settlement_currency_code": "USD",
+    "settlement_amount": 97.00
+  }
+}
+```
+
+### 字段说明
+
+| 字段                        | 类型       | 说明                                         |
+| --------------------------- | ---------- | -------------------------------------------- |
+| `platform_transaction_id`   | String     | 平台订单号                                   |
+| `merchant_transaction_id`   | String     | 商户交易号                                   |
+| `payment_currency_code`     | String     | 支付币种                                     |
+| `payment_amount`            | BigDecimal | 支付金额                                     |
+| `payment_status`            | Integer    | 订单状态（见下方状态枚举）                   |
+| `payment_success_time`      | DateTime   | 支付成功时间（ISO 8601）                     |
+| `settlement_currency_code`  | String     | 结算币种（可能与支付币种不同）               |
+| `settlement_amount`         | BigDecimal | 结算金额（扣除手续费后）                     |
+
+### 支付状态枚举
+
+| 状态码 | 状态           | 说明             |
+| ------ | -------------- | ---------------- |
+| 0      | 初始化         | 订单已创建，等待支付 |
+| 1      | 支付中         | 用户正在进行支付 |
+| 2      | 支付成功       | 支付已完成       |
+| 3      | 支付失败       | 支付处理失败     |
+| 4      | 部分退款       | 已退款部分金额   |
+| 5      | 已退款         | 订单金额全部退还 |
+| 6      | 已关闭         | 超时未支付关闭   |
+| 7      | 争议中         | 发生 Chargeback  |
+
+## 请求示例
+
+<Tabs>
+  <Tab title="cURL">
+
+```bash
+curl -X GET "https://openapi.example.com/api/merchant/order/payment/query/ORDER-20260101-001" \
+  -H "X-Merchant-Id: 10001" \
+  -H "X-Timestamp: 1737004800000" \
+  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Signature: <RSA_SIGNATURE>"
+```
+
+  </Tab>
+</Tabs>
+
+## 使用场景
+
+- **后台对账**：定时拉取订单状态与本地系统核对
+- **状态排查**：Webhook 未收到或延迟时，手动查询确认
+- **页面轮询**：收银台跳转后，轮询确认支付结果（仅作为 Webhook 的补充）
+
+<Tip>
+  建议以 **Webhook 通知** 作为状态变更的主要驱动，支付查询接口仅作为辅助验证和异常排查使用，避免高频轮询。
+</Tip>

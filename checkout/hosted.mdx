@@ -1,0 +1,159 @@
+---
+title: "托管收银台"
+description: "使用 PMP Payment 托管收银台完成支付接入"
+---
+
+# 托管收银台
+
+托管收银台是 PMP Payment 提供的开箱即用的支付页面，商户只需将用户重定向到该页面即可完成支付。
+
+## 集成流程
+
+```
+1. 用户在商户网站下单
+        ↓
+2. 商户服务端调用 API 创建支付订单
+        ↓
+3. 获得 pay_url
+        ↓
+4. 将用户重定向到 pay_url
+        ↓
+5. 用户在托管收银台完成支付
+        ↓
+6. 支付成功 → 跳转回 redirect_url
+   支付取消 → 跳转回 cancel_url
+        ↓
+7. 平台推送 Webhook 通知商户
+```
+
+## 第一步：创建支付订单
+
+商户服务端调用 OpenAPI 创建支付订单：
+
+```bash
+curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
+  -H "Content-Type: application/json" \
+  -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
+  -H "X-Timestamp: 1737004800000" \
+  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Signature: <RSA_SIGNATURE>" \
+  -d '{
+    "merchant_transaction_id": "ORDER-20260101-001",
+    "amount": 100.00,
+    "currency_code": "USD",
+    "description": "订单描述",
+    "redirect_url": "https://merchant.com/payment/success",
+    "cancel_url": "https://merchant.com/payment/cancel",
+    "products": [
+      {
+        "product_id": "PROD001",
+        "name": "Product Name",
+        "price": 100.00,
+        "quantity": 1
+      }
+    ],
+    "customer": {
+      "full_name": "John Doe"
+    }
+  }'
+```
+
+### 关键参数说明
+
+- `redirect_url`：支付成功后，用户将被重定向到此地址。URL 中会附带 `order_id` 参数
+- `cancel_url`：用户取消支付时跳转的地址
+- `products`：商品信息会展示在收银台页面上
+
+## 第二步：重定向用户到收银台
+
+从创建接口的响应中获取 `pay_url`：
+
+```json
+{
+  "code": 0,
+  "data": {
+    "order_id": "1000126011700000100001",
+    "pay_url": "https://checkout.example.com/pay/1000126011700000100001"
+  }
+}
+```
+
+将用户重定向到 `pay_url`。
+
+### 重定向方式
+
+**HTTP 重定向**（推荐）：
+```
+HTTP 302 Location: https://checkout.example.com/pay/1000126011700000100001
+```
+
+**前端跳转**：
+```javascript
+window.location.href = payUrl;
+```
+
+## 第三步：收银台页面
+
+用户进入收银台后，会看到：
+
+1. **订单摘要**：商品信息、订单金额
+2. **支付方式选择**：可用的支付方式列表（银行卡、钱包等）
+3. **支付表单**：根据选择的支付方式展示对应的表单
+
+收银台会自动处理：
+- 卡号采集（PCI 合规）
+- 3DS 认证
+- 支付状态展示
+- 超时处理
+
+## 第四步：支付结果处理
+
+### 用户侧
+
+支付成功后，用户被重定向回 `redirect_url`，URL 附带订单 ID：
+
+```
+https://merchant.com/payment/success?order_id=1000126011700000100001
+```
+
+<Tip>
+  可以在此页面展示支付结果，但**不要**仅以此作为发货依据，务必以 Webhook 为准。
+</Tip>
+
+### 服务端
+
+平台异步推送 Webhook 通知：
+
+```json
+{
+  "event_type": "order.payment.succeeded",
+  "data": {
+    "order_id": "1000126011700000100001",
+    "merchant_transaction_id": "ORDER-20260101-001",
+    "amount": 100.00,
+    "status": 2
+  }
+}
+```
+
+商户服务端收到此通知后：
+1. 验签（确保来源可信）
+2. 查询本地订单
+3. 更新订单状态（如：待发货 → 已支付）
+4. 返回 HTTP 200 确认
+
+## 收银台定制
+
+托管收银台支持以下定制：
+
+| 定制项     | 说明                         | 配置位置         |
+| ---------- | ---------------------------- | ---------------- |
+| 商户 Logo  | 收银台顶部展示的商户 Logo    | 商户门户 → 企业信息 |
+| 主题色     | 收银台按钮、链接等主题色     | 待开放           |
+| 语言       | 支持中英文等多语言           | 自动适配浏览器语言 |
+
+## 安全说明
+
+- **HTTPS 强制**：收银台和回调地址均需使用 HTTPS
+- **订单有效期**：`pay_url` 有时效性，过期后需重新创建订单
+- **支付确认**：以 Webhook 为权威来源，不可仅依赖前端重定向

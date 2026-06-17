@@ -1,0 +1,251 @@
+---
+title: "签名与鉴权"
+description: "基于 RSA 的商户 OpenAPI 签名规范"
+---
+
+# 签名与鉴权
+
+PMP Payment OpenAPI 采用 **RSA 签名 + 防重放** 机制，确保请求来源可信、内容未被篡改。
+
+## 签名流程概述
+
+```
+商户私钥 → 构造签名原文 → SHA256WithRSA 签名 → Base64 编码 → X-Signature 头
+                                                                    ↓
+平台公钥 ← 读取签名原文 ← Base64 解码 ← RSA 验签 ← 验证通过/拒绝
+```
+
+## 必填请求头
+
+所有需要签名的接口必须携带以下 4 个请求头：
+
+| Header           | 说明                         | 示例              |
+| ---------------- | ---------------------------- | ----------------- |
+| `X-Merchant-Id`  | 商户 ID（平台分配）          | `10001`           |
+| `X-Timestamp`    | 请求时间戳（Unix 毫秒）      | `1737004800000`   |
+| `X-Nonce`        | 随机字符串，每次请求唯一     | `a3f7b2c1d4e5`    |
+| `X-Signature`    | RSA 签名（Base64 编码）      | `dGhpcyBpcyBhbi...` |
+
+## 签名原文构造
+
+签名原文由 6 部分用 `\n` 逐行拼接：
+
+```
+HTTP_METHOD\n
+REQUEST_URI\n
+SORTED_QUERY_STRING\n
+SHA256(BODY_CANONICAL_STRING)\n
+TIMESTAMP\n
+NONCE
+```
+
+### 各部分说明
+
+| 部分                       | 说明                                                         |
+| -------------------------- | ------------------------------------------------------------ |
+| `HTTP_METHOD`              | 请求方法，如 `POST`、`GET`                                   |
+| `REQUEST_URI`              | 请求路径，不含域名，如 `/api/merchant/payment/create`        |
+| `SORTED_QUERY_STRING`      | Query 参数按 key 字母序升序拼接，无参数时为空行               |
+| `SHA256(BODY_CANONICAL_STRING)` | 请求体规范化后的 SHA256 值（小写十六进制）              |
+| `TIMESTAMP`                | Unix 毫秒时间戳，与 `X-Timestamp` 头一致                     |
+| `NONCE`                    | 随机字符串，与 `X-Nonce` 头一致                              |
+
+### Body 规范化
+
+对于 JSON 请求体，需递归拍平为 `key=value&key=value` 格式再做 SHA256：
+
+```json
+// 原始请求体
+{
+  "amount": 100,
+  "currency_code": "USD"
+}
+
+// 拍平后
+amount=100&currency_code=USD
+
+// 签名原文中该行
+SHA256("amount=100&currency_code=USD")
+// = "8f2c1d..."
+```
+
+对于 GET 请求无 Body 时，该行保留空行。
+
+### 签名原文示例
+
+```
+POST
+/api/merchant/payment/create
+
+8f2c1d3a5b7e9f...
+1737004800000
+a3f7b2c1d4e5
+```
+
+## 签名算法
+
+使用 `SHA256WithRSA` 对签名原文进行签名，结果 Base64 编码：
+
+```java
+// 伪代码
+String canonicalString = buildCanonicalString(method, uri, queryString, body, timestamp, nonce);
+Signature signature = Signature.getInstance("SHA256withRSA");
+signature.initSign(privateKey);
+signature.update(canonicalString.getBytes(StandardCharsets.UTF_8));
+byte[] signBytes = signature.sign();
+String signBase64 = Base64.getEncoder().encodeToString(signBytes);
+```
+
+## 防重放机制
+
+平台对每个请求进行防重放校验：
+
+- **时间窗**：`X-Timestamp` 与服务器时间偏差不超过 ±2 分钟
+- **Nonce 去重**：同一商户 ID + Nonce 组合在 5 分钟内不可重复使用
+
+超出时间窗返回 `TIMESTAMP_EXPIRED` 错误码；重复 Nonce 返回 `BUSY` 错误码。
+
+## 请求体格式约定
+
+请求体支持两种格式：
+
+### 方式一：直接传业务参数
+
+```json
+{
+  "amount": 100,
+  "currency_code": "USD"
+}
+```
+
+### 方式二：包裹在 `data` 字段中
+
+```json
+{
+  "data": {
+    "amount": 100,
+    "currency_code": "USD"
+  }
+}
+```
+
+<Warning>
+  签名使用的是**原始请求体**。如果使用方式二（`data` 包裹），签名原文的 Body 部分应包含整个 `{"data":{...}}`，而非仅内部的业务参数。
+</Warning>
+
+## 签名示例代码
+
+以下是各语言的签名示例：
+
+<Tabs>
+  <Tab title="Java">
+
+```java
+import java.security.*;
+import java.util.Base64;
+
+public class SignatureUtil {
+
+    public static String sign(String canonicalString, PrivateKey privateKey) throws Exception {
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initSign(privateKey);
+        signature.update(canonicalString.getBytes("UTF-8"));
+        byte[] signBytes = signature.sign();
+        return Base64.getEncoder().encodeToString(signBytes);
+    }
+
+    public static String buildCanonicalString(
+            String method, String uri, String queryString,
+            String body, long timestamp, String nonce) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        String bodyHash = body.isEmpty() ? "" :
+            bytesToHex(md.digest(body.getBytes("UTF-8")));
+        return method + "\n" + uri + "\n" + queryString + "\n"
+            + bodyHash + "\n" + timestamp + "\n" + nonce;
+    }
+}
+```
+
+  </Tab>
+  <Tab title="Python">
+
+```python
+import hashlib
+import base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+
+def sign(canonical_string: str, private_key) -> str:
+    signature = private_key.sign(
+        canonical_string.encode('utf-8'),
+        padding.PKCS1v15(),
+        hashes.SHA256()
+    )
+    return base64.b64encode(signature).decode('utf-8')
+
+def build_canonical_string(method, uri, query_string, body, timestamp, nonce):
+    body_hash = hashlib.sha256(body.encode('utf-8')).hexdigest() if body else ""
+    return f"{method}\n{uri}\n{query_string}\n{body_hash}\n{timestamp}\n{nonce}"
+```
+
+  </Tab>
+  <Tab title="Node.js">
+
+```javascript
+const crypto = require('crypto');
+
+function sign(canonicalString, privateKeyPem) {
+    const sign = crypto.createSign('SHA256');
+    sign.update(canonicalString);
+    sign.end();
+    return sign.sign(privateKeyPem, 'base64');
+}
+
+function buildCanonicalString(method, uri, queryString, body, timestamp, nonce) {
+    const bodyHash = body ?
+        crypto.createHash('sha256').update(body).digest('hex') : '';
+    return `${method}\n${uri}\n${queryString}\n${bodyHash}\n${timestamp}\n${nonce}`;
+}
+```
+
+  </Tab>
+</Tabs>
+
+## cURL 示例
+
+```bash
+curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
+  -H "Content-Type: application/json" \
+  -H "X-Merchant-Id: 10001" \
+  -H "X-Timestamp: 1737004800000" \
+  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Signature: dGhpcyBpcyBhbiBleGFtcGxl..." \
+  -d '{
+    "merchant_transaction_id": "TXN20260101001",
+    "amount": 100.00,
+    "currency_code": "USD",
+    "redirect_url": "https://merchant.com/payment/return",
+    "cancel_url": "https://merchant.com/payment/cancel",
+    "products": [
+      {
+        "product_id": "PROD001",
+        "name": "Product Name",
+        "price": 100.00,
+        "quantity": 1
+      }
+    ],
+    "customer": {
+      "full_name": "John Doe"
+    }
+  }'
+```
+
+## 常见问题
+
+### 签名验证失败？
+
+1. 确认 `X-Timestamp` 和 `X-Nonce` 的值与签名原文中一致
+2. 确认公钥已正确上传至平台
+3. 确认签名原文中的换行符为 `\n`（不是 `\r\n`）
+4. 确认 Body 部分是对**原始完整请求体**做 SHA256
+5. 检查时间戳是否在 ±2 分钟窗口内

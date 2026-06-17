@@ -1,0 +1,209 @@
+---
+title: "自建收银台"
+description: "在商户自有页面中集成支付能力，使用平台 API 完成支付"
+---
+
+# 自建收银台
+
+自建收银台允许商户在自己的网站或应用中完全控制支付页面的 UI 和交互，同时使用平台 API 完成底层支付处理。
+
+## 适用场景
+
+- 需要与自己品牌风格完全一致的支付体验
+- 不想让用户跳转到第三方页面
+- 有特殊的前端交互需求
+
+<Warning>
+  自建收银台需要处理卡号等敏感信息，请确保遵循 PCI DSS 合规要求。对于直接采集卡号的场景，建议使用 Stripe Elements 等托管组件避免触碰敏感数据。
+</Warning>
+
+## 自建收银台 API
+
+自建收银台使用结账 API（Checkout API），与商户 OpenAPI 不同：
+
+| 项目     | 说明                                    |
+| -------- | --------------------------------------- |
+| 地址前缀 | `/api/web/`                            |
+| 端口     | `10030`                                |
+| 鉴权方式 | 会话签名（由收银台页面携带）           |
+
+## 集成流程
+
+```
+1. 商户创建支付订单（OpenAPI）
+        ↓
+2. 用户进入商户自建的支付页面
+        ↓
+3. 调用 GET /api/web/checkout/payment-methods?orderId=xxx
+   → 获取该订单可用的支付方式列表
+        ↓
+4. 用户选择支付方式
+        ↓
+5. 调用 POST /api/web/checkout/init
+   → 返回 PreparePaymentRespVO（含渲染类型、渠道信息等）
+        ↓
+6. 根据 paymentRenderType 渲染支付表单
+        ↓
+7. 用户填写并提交支付 → POST /api/web/payment/submit
+   → 返回交易结果（可能需要 3DS 重定向）
+        ↓
+8. 等待 Webhook 确认支付结果
+```
+
+## 关键 API
+
+### 获取支付方式
+
+```
+GET /api/web/checkout/payment-methods?orderId={orderId}
+```
+
+响应示例：
+```json
+{
+  "code": 0,
+  "data": {
+    "payment_methods": [
+      {
+        "code": "stripe_card",
+        "name": "Credit/Debit Card",
+        "icon": "https://cdn.example.com/icons/card.svg",
+        "supported_card_brands": ["visa", "mastercard", "amex"]
+      },
+      {
+        "code": "antom_alipay",
+        "name": "Alipay",
+        "icon": "https://cdn.example.com/icons/alipay.svg"
+      }
+    ]
+  }
+}
+```
+
+### 初始化支付
+
+```
+POST /api/web/checkout/init
+Content-Type: application/json
+
+{
+  "orderId": "1000126011700000100001",
+  "paymentMethodCode": "stripe_card"
+}
+```
+
+响应中的关键字段：
+
+| 字段                   | 说明                                         |
+| ---------------------- | -------------------------------------------- |
+| `channelType`          | 渠道类型，如 `Stripe`、`Antom`、`Sandbox`    |
+| `transactionId`        | 交易 ID                                      |
+| `paymentUrl`           | 重定向支付地址（REDIRECT 方式时使用）        |
+| `extension.paymentRenderType` | 渲染方式：`STRIPE_ELEMENT`、`COMPONENT_SDK`、`OWN_FORM`、`REDIRECT` |
+| `extension.clientSecret`     | Stripe PaymentIntent client_secret（STRIPE_ELEMENT 时使用） |
+| `cardBrands`           | 支持的卡品牌列表                             |
+
+### 提交支付
+
+```
+POST /api/web/payment/submit
+Content-Type: application/json
+
+{
+  "orderId": "1000126011700000100001",
+  "terminal": {
+    "type": "PC",
+    "userAgent": "Mozilla/5.0..."
+  },
+  "card": {
+    "number": "4242424242424242",
+    "expMonth": 12,
+    "expYear": 2028,
+    "cvc": "123"
+  },
+  "deviceId": "device_fingerprint_xxx"
+}
+```
+
+响应中的关键字段：
+
+| 字段            | 说明                                           |
+| --------------- | ---------------------------------------------- |
+| `transactionId` | 交易 ID                                        |
+| `paymentUrl`    | 3DS 认证重定向地址，非空时需要跳转             |
+
+## 按渲染方式实现
+
+### STRIPE_ELEMENT
+
+当 `paymentRenderType` 为 `STRIPE_ELEMENT` 时：
+
+1. 使用 `extension.clientSecret` 初始化 Stripe.js
+2. 挂载 `stripe.elements()` 创建卡号输入组件
+3. 用户填写后调用 `stripe.confirmPayment(clientSecret, {...})`
+4. Stripe 自动处理 3DS 重定向
+
+```javascript
+import { loadStripe } from '@stripe/stripe-js';
+
+// 初始化 Stripe（需要 publishable key）
+const stripe = await loadStripe('pk_test_xxx');
+
+// 挂载 Elements
+const elements = stripe.elements();
+const cardElement = elements.create('card');
+cardElement.mount('#card-element');
+
+// 确认支付
+const result = await stripe.confirmPayment({
+    elements,
+    clientSecret: initData.extension.clientSecret,
+    confirmParams: {
+        return_url: 'https://merchant.com/payment/result',
+    },
+});
+```
+
+### COMPONENT_SDK
+
+当 `paymentRenderType` 为 `COMPONENT_SDK` 时：
+
+1. 动态加载渠道提供的 SDK（如 Antom SDK）
+2. 使用 SDK 初始化支付组件
+3. 挂载到指定 DOM 元素
+4. 调用 SDK 的 `submitPayment()` 方法
+
+### OWN_FORM
+
+当 `paymentRenderType` 为 `OWN_FORM` 时：
+
+1. 商户自行构建卡号输入表单
+2. 自行采集卡号、有效期、CVV
+3. 调用 `POST /api/web/payment/submit` 提交
+
+<Warning>
+  OWN_FORM 方式需要商户自行确保持卡人数据安全（PCI DSS SAQ D），如有疑虑请优先使用 STRIPE_ELEMENT 方式。
+</Warning>
+
+### REDIRECT
+
+当 `paymentRenderType` 为 `REDIRECT` 时：
+
+1. 展示一个「前往支付」按钮
+2. 点击后将用户重定向到 `paymentUrl`
+
+## 支付结果处理
+
+与托管收银台相同，最终支付结果以 Webhook 通知为准：
+
+```json
+{
+  "event_type": "order.payment.succeeded",
+  "data": {
+    "order_id": "1000126011700000100001",
+    "merchant_transaction_id": "ORDER-20260101-001",
+    "amount": 100.00,
+    "status": 2
+  }
+}
+```
