@@ -1,0 +1,113 @@
+---
+title: "Orders: Managing Payment Intents in PayMatrix"
+sidebarTitle: "Orders"
+description: "An Order in PayMatrix represents a payment intent. Create an order first, then attach a payment method to capture funds from your customer."
+---
+
+An **Order** in PayMatrix is a container that represents your intent to collect a specific amount from a customer. Think of it as a payment request that you create on your server before any payment details are collected. The Order holds the amount, currency, and any metadata you want to attach to the transaction. Only after you create an Order do you attach a payment method — at which point PayMatrix creates a linked [Payment](/concepts/payments) object and attempts to collect the funds.
+
+## Orders vs. Payments
+
+The separation between Orders and Payments is intentional and gives you precise control over your checkout flow.
+
+<CardGroup cols={2}>
+  <Card title="Order" icon="file-invoice">
+    Represents **what** you want to charge and **how much**. Created on your server as soon as a customer initiates checkout. Does not move money — it is a payment intent only.
+  </Card>
+  <Card title="Payment" icon="circle-check">
+    Represents the **actual transaction attempt** against a payment method. Created when your customer submits their card, bank account, or wallet details. Linked to the parent Order via `order_id`.
+  </Card>
+</CardGroup>
+
+This model means you can create an Order, pass its ID to your front end, and let your customer attempt payment one or more times (for example, after a declined card) without creating duplicate charges on your backend.
+
+## Order Lifecycle
+
+An Order moves through the following states from creation to final resolution.
+
+<Steps>
+  <Step title="pending">
+    The Order has been created and is waiting for a payment method to be attached. This is the initial state for all orders. The order will expire after 1 hour if no payment is attempted.
+  </Step>
+  <Step title="paid">
+    A payment linked to this order has `succeeded`. Funds have been captured from your customer and the order is considered complete.
+  </Step>
+  <Step title="expired">
+    No payment was attached within the expiry window (1 hour by default). The order can no longer accept new payments. You must create a fresh order to retry the charge.
+  </Step>
+  <Step title="cancelled">
+    The order was explicitly cancelled via the API or Dashboard before a payment succeeded. Cancelling an order in `pending` state is a no-op for your customer (no funds were ever collected).
+  </Step>
+</Steps>
+
+<Warning>
+  Once an order reaches `paid`, `expired`, or `cancelled` it is in a **terminal state** and cannot be modified. To collect payment after an expiry or cancellation, create a new order with the same parameters.
+</Warning>
+
+## The Order Object
+
+Below is a representative Order object as returned by the PayMatrix API. Monetary values follow the same smallest-currency-unit convention as Payments — `5000` in USD equals $50.00.
+
+```json
+{
+  "id": "ord_1A2B3C4D5E",
+  "status": "paid",
+  "amount": 5000,
+  "currency": "USD",
+  "description": "Order #1001",
+  "payment_id": "pay_9Z8Y7X6W5V",
+  "metadata": { "customer_id": "cust_abc123" },
+  "created_at": "2024-01-15T10:30:00Z",
+  "expires_at": "2024-01-15T11:30:00Z"
+}
+```
+
+<Accordion title="Order object field reference">
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique identifier for the order, prefixed with `ord_`. |
+| `status` | string | Current lifecycle state: `pending`, `paid`, `expired`, or `cancelled`. |
+| `amount` | integer | The intended charge amount in the smallest currency unit. |
+| `currency` | string | Three-letter ISO 4217 currency code. |
+| `description` | string | A human-readable description of the order, visible in the Dashboard. |
+| `payment_id` | string \| null | The ID of the successful Payment linked to this order. `null` until a payment succeeds. |
+| `metadata` | object | Up to 20 key-value pairs of custom data. Keys and values must be strings. |
+| `created_at` | string | ISO 8601 timestamp of when the order was created. |
+| `expires_at` | string | ISO 8601 timestamp of when the order will automatically expire if unpaid. |
+
+</Accordion>
+
+## Using Metadata
+
+The `metadata` field lets you attach your own structured data to any Order without needing a separate database mapping. This is useful for correlating PayMatrix orders with records in your own system — such as your internal order ID, customer ID, subscription reference, or cart contents.
+
+```json
+{
+  "metadata": {
+    "customer_id": "cust_abc123",
+    "internal_order_ref": "ORD-2024-001001",
+    "subscription_plan": "pro_annual"
+  }
+}
+```
+
+<Tip>
+  Metadata is returned as-is on every API response and is searchable in the Dashboard. Use consistent key names across your orders to make filtering and reporting easier. Metadata is not displayed to your customers.
+</Tip>
+
+## Order Expiry
+
+By default, an order expires **1 hour** after creation if no payment is successfully attached. This prevents stale payment intents from lingering and keeps your order data clean.
+
+<Note>
+  You can configure a custom expiry window per order by passing an `expires_at` timestamp when creating the order. The minimum expiry is 5 minutes and the maximum is 24 hours. If your checkout flow takes longer than 1 hour (for example, a multi-step B2B purchase approval), set a longer expiry at order creation time.
+</Note>
+
+## Next Steps
+
+Ready to create your first order programmatically?
+
+<Card title="Create an Order" icon="plus" href="/api-reference/orders/create">
+  See the full API reference for `POST /v1/orders`, including all request parameters, response schema, and example cURL requests.
+</Card>

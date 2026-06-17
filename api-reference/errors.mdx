@@ -1,0 +1,150 @@
+---
+title: "Error Responses in the PayMatrix API"
+sidebarTitle: "Errors"
+description: "PayMatrix returns structured JSON error objects. Every error includes a machine-readable code, human message, and a request_id for support."
+---
+
+When a request cannot be completed, PayMatrix returns a JSON error object rather than a partial or empty response. Every error carries a machine-readable `code` you can branch on in your code, a human-readable `message` suitable for logging, and a `request_id` that uniquely identifies the request in PayMatrix's systems. Understanding this structure allows you to handle failures gracefully and resolve issues quickly.
+
+## Error Object Structure
+
+All error responses share the same top-level shape: a single `error` object containing the fields described below.
+
+<ResponseField name="error" type="object" required>
+  The top-level error container present on every non-2xx response.
+
+  <Expandable title="error fields">
+    <ResponseField name="code" type="string" required>
+      A machine-readable string that identifies the specific error condition (e.g., `card_declined`, `rate_limit_exceeded`). Use this field to drive error-handling logic in your application.
+    </ResponseField>
+
+    <ResponseField name="message" type="string" required>
+      A human-readable sentence describing what went wrong. This message is intended for developers and logs — it is not guaranteed to be stable across API versions and should not be parsed programmatically.
+    </ResponseField>
+
+    <ResponseField name="param" type="string">
+      When the error is caused by a specific request parameter, this field names that parameter (e.g., `"amount"`). This field is `null` when the error is not tied to a single field.
+    </ResponseField>
+
+    <ResponseField name="request_id" type="string" required>
+      A unique identifier for this API request. Include this value whenever you contact PayMatrix support — it allows the support team to look up the exact request and response in the system logs.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Error Response
+
+```json
+{
+  "error": {
+    "code": "card_declined",
+    "message": "The card was declined by the issuing bank.",
+    "param": null,
+    "request_id": "req_AbCdEfGh"
+  }
+}
+```
+
+## HTTP Status Codes
+
+PayMatrix uses standard HTTP status codes to indicate the category of outcome before you inspect the error body.
+
+| Status | Meaning                                                                                      |
+| ------ | -------------------------------------------------------------------------------------------- |
+| `200`  | **OK** — The request succeeded.                                                              |
+| `201`  | **Created** — A new resource was successfully created.                                       |
+| `400`  | **Bad Request** — The request was malformed or missing required parameters.                  |
+| `401`  | **Unauthorized** — Authentication failed or no API key was provided.                         |
+| `402`  | **Payment Required** — A payment-specific failure occurred (e.g., card declined).            |
+| `403`  | **Forbidden** — Your API key does not have permission to perform this action.                |
+| `404`  | **Not Found** — The requested resource does not exist.                                       |
+| `409`  | **Conflict** — The request conflicts with the current state of the resource.                 |
+| `422`  | **Unprocessable Entity** — The request was well-formed but failed validation.                |
+| `429`  | **Too Many Requests** — You have exceeded the rate limit. Back off and retry.                |
+| `500`  | **Internal Server Error** — Something went wrong on PayMatrix's end. Retry with backoff.    |
+
+<Note>
+  `5xx` errors are rare and indicate a problem on PayMatrix's infrastructure. You should implement exponential backoff and retry logic for these responses. If they persist, check the [PayMatrix Status Page](https://status.paymatrix.com).
+</Note>
+
+## Error Code Reference
+
+The table below lists every error code the PayMatrix API may return, the HTTP status it is paired with, and what it means.
+
+| Error code               | HTTP status | Description                                                                                    |
+| ------------------------ | ----------- | ---------------------------------------------------------------------------------------------- |
+| `authentication_required`| `401`       | No API key was provided in the request.                                                        |
+| `invalid_api_key`        | `401`       | The API key provided is malformed, expired, or does not exist.                                 |
+| `forbidden`              | `403`       | The API key is valid but lacks permission to perform the requested action.                     |
+| `not_found`              | `404`       | The requested resource could not be found. Verify the ID in your request.                     |
+| `card_declined`          | `402`       | The card was declined by the issuing bank. Ask the customer to use a different payment method. |
+| `insufficient_funds`     | `402`       | The card or account does not have sufficient funds to complete the transaction.                |
+| `expired_card`           | `422`       | The card's expiration date has passed.                                                         |
+| `invalid_cvc`            | `422`       | The CVC/CVV provided does not match the card.                                                  |
+| `order_not_found`        | `404`       | The order ID referenced in the request does not exist.                                         |
+| `order_already_paid`     | `409`       | A payment has already been successfully applied to this order.                                 |
+| `amount_too_small`       | `422`       | The amount is below the minimum allowed for this currency.                                     |
+| `amount_too_large`       | `422`       | The amount exceeds the maximum allowed for this currency or merchant account.                  |
+| `rate_limit_exceeded`    | `429`       | Too many requests in a short window. Wait before retrying.                                     |
+| `idempotency_conflict`   | `409`       | The same `Idempotency-Key` was used with a different request body.                             |
+| `internal_error`         | `500`       | An unexpected error occurred on PayMatrix's servers. Retry with exponential backoff.           |
+
+<Warning>
+  For `card_declined`, `insufficient_funds`, `expired_card`, and `invalid_cvc` errors, do **not** retry automatically — these indicate issuer-level rejections that will not resolve on their own. Prompt the user to provide a different payment method instead.
+</Warning>
+
+## Handling Errors in Your Integration
+
+The following examples show a minimal but robust error-handling pattern when calling the PayMatrix API.
+
+<CodeGroup>
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.paymatrix.com/v1/payments",
+    headers={
+        "Authorization": "Bearer pm_test_xxxxxxxxxxxx",
+        "Content-Type": "application/json",
+    },
+    json={"amount": 4999, "currency": "usd", "order_id": "ord_XxYyZz"},
+)
+
+if not response.ok:
+    error = response.json().get("error", {})
+    code = error.get("code")
+    request_id = error.get("request_id")
+
+    if code == "card_declined":
+        print("Card declined — ask the customer to use a different card.")
+    elif code == "rate_limit_exceeded":
+        print("Rate limit hit — backing off before retry.")
+    else:
+        print(f"Unexpected error [{code}] — request_id: {request_id}")
+```
+
+```javascript Node.js
+const response = await fetch("https://api.paymatrix.com/v1/payments", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer pm_test_xxxxxxxxxxxx",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ amount: 4999, currency: "usd", order_id: "ord_XxYyZz" }),
+});
+
+if (!response.ok) {
+  const { error } = await response.json();
+
+  if (error.code === "card_declined") {
+    console.error("Card declined — ask the customer to use a different card.");
+  } else if (error.code === "rate_limit_exceeded") {
+    console.error("Rate limit hit — back off before retrying.");
+  } else {
+    console.error(`Unexpected error [${error.code}] — request_id: ${error.request_id}`);
+  }
+}
+```
+
+</CodeGroup>

@@ -1,0 +1,63 @@
+---
+title: "PayMatrix: Payment Processing for Modern Businesses"
+sidebarTitle: "Home"
+description: "PayMatrix helps businesses accept, manage, and reconcile payments across channels and currencies with a simple, developer-friendly API."
+---
+
+PayMatrix is a payment processing platform built for businesses that need reliable, multi-channel payment acceptance. Whether you're collecting payments on the web, in a mobile app, or in person, PayMatrix gives you a single API and dashboard to manage your entire payment operation.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get your first payment running in minutes with our step-by-step guide.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Learn how to obtain and use your API keys to authenticate requests.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore every endpoint, request parameter, and response field.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/guides/webhooks">
+    Receive real-time notifications when payment events occur.
+  </Card>
+</CardGroup>
+
+## What you can do with PayMatrix
+
+<CardGroup cols={3}>
+  <Card title="Accept Payments" icon="credit-card" href="/guides/accept-payments">
+    Process card, bank transfer, and digital wallet payments from a unified API.
+  </Card>
+  <Card title="Manage Orders" icon="cart-shopping" href="/concepts/orders">
+    Create and track orders tied to payment intents across your checkout flow.
+  </Card>
+  <Card title="Issue Refunds" icon="rotate-left" href="/guides/refunds">
+    Initiate full or partial refunds and track their status in real time.
+  </Card>
+  <Card title="Settle Funds" icon="building-columns" href="/concepts/settlements">
+    Automated daily settlements with detailed transaction-level reporting.
+  </Card>
+  <Card title="Reconcile" icon="table-list" href="/guides/reconciliation">
+    Match payment records against your ledger with exportable reports.
+  </Card>
+  <Card title="Test Safely" icon="flask" href="/integration/testing">
+    Use the sandbox environment to verify your integration before going live.
+  </Card>
+</CardGroup>
+
+## Get started in three steps
+
+<Steps>
+  <Step title="Create your account">
+    Sign up at the PayMatrix dashboard and complete merchant onboarding to activate your account.
+  </Step>
+  <Step title="Grab your API keys">
+    Navigate to **Settings → API Keys** to find your test and live keys. Start with the test key to build your integration.
+  </Step>
+  <Step title="Make your first payment">
+    Call `POST /payments` with your key in the `Authorization` header. See the [Quickstart](/quickstart) for a complete walkthrough.
+  </Step>
+</Steps>
+
+<Tip>
+  Start in the [sandbox environment](/integration/testing) — all test transactions are free and no real money moves. Switch to your live API key when you're ready to go live.
+</Tip>

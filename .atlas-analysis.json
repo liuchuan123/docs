@@ -1,0 +1,129 @@
+{
+  "projectType": "saas",
+  "projectName": "PayMatrix",
+  "projectDescription": "PayMatrix is a payment processing platform that enables businesses to accept, manage, and reconcile payments across multiple channels and currencies.",
+  "theme": "luma",
+  "primaryColor": "#fb6c24",
+  "lightColor": "#fca024",
+  "darkColor": "#6c4c24",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/payments",
+              "concepts/merchants",
+              "concepts/orders",
+              "concepts/settlements"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/accept-payments",
+              "guides/refunds",
+              "guides/webhooks",
+              "guides/reconciliation"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "integration/checkout",
+              "integration/mobile",
+              "integration/testing"
+            ]
+          },
+          {
+            "group": "Support",
+            "pages": [
+              "faq",
+              "errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/authentication",
+              "api-reference/errors",
+              "api-reference/pagination"
+            ]
+          },
+          {
+            "group": "Payments",
+            "pages": [
+              "api-reference/payments/create",
+              "api-reference/payments/retrieve",
+              "api-reference/payments/list",
+              "api-reference/payments/refund"
+            ]
+          },
+          {
+            "group": "Orders",
+            "pages": [
+              "api-reference/orders/create",
+              "api-reference/orders/retrieve",
+              "api-reference/orders/update"
+            ]
+          },
+          {
+            "group": "Merchants",
+            "pages": [
+              "api-reference/merchants/profile",
+              "api-reference/merchants/settlements"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "api-reference/webhooks/overview",
+              "api-reference/webhooks/events"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-channel payment acceptance (online, mobile, POS)",
+    "Multi-currency support and automatic conversion",
+    "Real-time payment status tracking",
+    "Automated settlement and reconciliation",
+    "Webhook notifications for payment events",
+    "Merchant dashboard with analytics",
+    "Refund and dispute management",
+    "PCI-DSS compliant infrastructure",
+    "REST API with comprehensive SDK support",
+    "Sandbox/test environment"
+  ],
+  "publicApiSurface": [
+    "POST /payments — Create a payment",
+    "GET /payments/{id} — Retrieve a payment",
+    "GET /payments — List payments",
+    "POST /payments/{id}/refund — Refund a payment",
+    "POST /orders — Create an order",
+    "GET /orders/{id} — Retrieve an order",
+    "PATCH /orders/{id} — Update an order",
+    "GET /merchants/profile — Get merchant profile",
+    "GET /merchants/settlements — List settlements",
+    "POST /webhooks — Register a webhook endpoint",
+    "GET /webhooks/events — List webhook events"
+  ]
+}

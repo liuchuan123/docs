@@ -1,0 +1,84 @@
+---
+title: "Merchant Accounts and Profiles in PayMatrix"
+sidebarTitle: "Merchants"
+description: "Your PayMatrix merchant account controls your business identity, payout settings, API keys, and access to the dashboard and reports."
+---
+
+Your **merchant account** is the top-level entity in PayMatrix that represents your business. Every API key, payment, settlement, and report in the platform belongs to a single merchant account. When you sign up for PayMatrix, a merchant account is provisioned for you automatically. You can manage your account details, configure payout preferences, and monitor transaction activity at any time through the PayMatrix Dashboard.
+
+## Merchant Profile Fields
+
+Your merchant profile stores the business and financial information PayMatrix needs to process payments on your behalf and route settlements to your bank account.
+
+<CardGroup cols={2}>
+  <Card title="Business Name" icon="building">
+    The legal name of your business as it appears on customer statements and PayMatrix reports.
+  </Card>
+  <Card title="Contact Email" icon="envelope">
+    The primary email address for account notifications, dispute alerts, and settlement reports.
+  </Card>
+  <Card title="Business Address" icon="location-dot">
+    Your registered business address, used for compliance and Know Your Customer (KYC) verification purposes.
+  </Card>
+  <Card title="Settlement Currency" icon="coins">
+    The currency in which PayMatrix disburses funds to your bank account. This is set at account creation and can be changed by contacting support.
+  </Card>
+  <Card title="Payout Bank Account" icon="building-columns">
+    The bank account that receives your daily settlement transfers. You can update this in the Dashboard under **Settings → Payouts**.
+  </Card>
+</CardGroup>
+
+## The Merchant Profile Object
+
+The API returns the following structure when you retrieve your merchant profile via `GET /v1/merchant`.
+
+```json
+{
+  "id": "mch_AABBCCDD",
+  "business_name": "Acme Corp",
+  "email": "billing@acme.com",
+  "status": "active",
+  "settlement_currency": "USD",
+  "created_at": "2023-06-01T00:00:00Z"
+}
+```
+
+## Account Statuses
+
+Your merchant account moves through several statuses over its lifetime. Your account's current status determines which PayMatrix features are available to you.
+
+<Tabs>
+  <Tab title="Pending">
+    Your account has been created but KYC verification has not yet been completed. In this state you can explore the Dashboard and make test-mode API calls, but **live payments are disabled**. Submit your business documents to move to `active`.
+  </Tab>
+  <Tab title="Active">
+    Your account is fully verified and in good standing. You can accept live payments, receive settlements, and access all Dashboard features including reports and API key management.
+  </Tab>
+  <Tab title="Suspended">
+    PayMatrix has temporarily restricted your account, typically due to elevated dispute rates, a compliance review, or a missed action required by our risk team. Live payments are paused and pending settlements are held. You will receive an email with the reason and next steps. Contact [support@paymatrix.io](mailto:support@paymatrix.io) to resolve the suspension.
+  </Tab>
+</Tabs>
+
+<Note>
+  You must complete KYC (Know Your Customer) verification before you can accept live payments. During KYC, PayMatrix verifies your business identity, ownership details, and banking information. This process typically takes 1–2 business days. Until verification is complete, your account status remains `pending` and all transactions must use test-mode API keys.
+</Note>
+
+## Dashboard Overview
+
+The PayMatrix Dashboard gives you a real-time view of your account activity without writing a single line of code.
+
+<Steps>
+  <Step title="Payments">
+    Navigate to **Payments** in the left sidebar to see a filterable, searchable list of all payment transactions. Click any payment to view its full detail — status history, payment method, linked order, and settlement reference.
+  </Step>
+  <Step title="Settlements">
+    The **Settlements** section shows your daily payout batches, including gross amounts, fees deducted, and net transfers. You can download CSV reports for each settlement period for reconciliation purposes.
+  </Step>
+  <Step title="API Keys">
+    Under **Settings → API Keys**, you can view your publishable and secret keys for both test mode and live mode. Use the **Roll Key** action to rotate a compromised secret key immediately. Test-mode keys are prefixed with `pk_test_` and `sk_test_`; live-mode keys use `pk_live_` and `sk_live_`.
+  </Step>
+</Steps>
+
+<Warning>
+  Your **secret API key** grants full programmatic access to your merchant account. Never expose it in client-side code, commit it to source control, or share it publicly. If you suspect a key has been compromised, rotate it immediately from the Dashboard.
+</Warning>

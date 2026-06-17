@@ -1,0 +1,116 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "PayMatrix",
+  "colors": {
+    "primary": "#fb6c24",
+    "light": "#fca024",
+    "dark": "#6c4c24"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/payments",
+              "concepts/merchants",
+              "concepts/orders",
+              "concepts/settlements"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/accept-payments",
+              "guides/refunds",
+              "guides/webhooks",
+              "guides/reconciliation"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "integration/checkout",
+              "integration/mobile",
+              "integration/testing"
+            ]
+          },
+          {
+            "group": "Support",
+            "pages": [
+              "faq",
+              "errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/authentication",
+              "api-reference/errors",
+              "api-reference/pagination"
+            ]
+          },
+          {
+            "group": "Payments",
+            "pages": [
+              "api-reference/payments/create",
+              "api-reference/payments/retrieve",
+              "api-reference/payments/list",
+              "api-reference/payments/refund"
+            ]
+          },
+          {
+            "group": "Orders",
+            "pages": [
+              "api-reference/orders/create",
+              "api-reference/orders/retrieve",
+              "api-reference/orders/update"
+            ]
+          },
+          {
+            "group": "Merchants",
+            "pages": [
+              "api-reference/merchants/profile",
+              "api-reference/merchants/settlements"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "api-reference/webhooks/overview",
+              "api-reference/webhooks/events"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://dashboard.paymatrix.com"
+    }
+  },
+  "footer": {
+    "socials": {}
+  }
+}

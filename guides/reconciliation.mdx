@@ -1,0 +1,115 @@
+---
+title: "Reconcile Payments and Settlements in PayMatrix"
+sidebarTitle: "Reconciliation"
+description: "Match your PayMatrix payment records against your internal ledger using settlement reports, transaction exports, and the reporting API."
+---
+
+Reconciliation is the process of verifying that every payment recorded in PayMatrix matches a corresponding entry in your internal systems — your order database, accounting ledger, or ERP. PayMatrix groups captured payments into settlements, each representing a batch of transactions netted against fees and refunds, with the resulting amount paid out to your bank account on a regular schedule. Keeping your records aligned with these settlements is essential for accurate revenue reporting and timely dispute resolution.
+
+## Two Approaches to Reconciliation
+
+PayMatrix supports two workflows depending on your team's technical setup and volume of transactions.
+
+<CardGroup cols={2}>
+  <Card title="Dashboard Export" icon="download">
+    Best for lower-volume merchants or finance teams who prefer working in spreadsheets. Download a CSV of all transactions for any date range directly from the Dashboard.
+  </Card>
+  <Card title="API-Based Reconciliation" icon="code">
+    Best for high-volume merchants or automated accounting pipelines. Use the Reporting API to fetch settlements and their constituent payments programmatically.
+  </Card>
+</CardGroup>
+
+## Dashboard Export
+
+To download a transaction report from the Dashboard:
+
+1. Go to **Settings → Reports**.
+2. Select **Transaction Export** and choose your desired date range.
+3. Click **Download CSV**.
+
+The exported file includes one row per payment with columns for payment ID, order ID, amount, fee, net amount, status, currency, and creation timestamp. You can import this directly into Excel, Google Sheets, or your accounting software.
+
+## API-Based Reconciliation
+
+For automated pipelines, use the Reporting API to pull settlement and payment data on a schedule. The recommended approach is to list settlements for a given period, then retrieve the payments associated with each settlement.
+
+### Step 1 — List Settlements
+
+Query `/v1/merchants/settlements` with `from` and `to` date parameters to retrieve all settlements in a given period. Amounts are returned in the smallest currency unit.
+
+<CodeGroup>
+  ```bash Request
+  curl "https://api.paymatrix.com/v1/merchants/settlements?from=2024-01-01&to=2024-01-31" \
+    -H "Authorization: Bearer pm_test_xxxxxxxxxxxx"
+  ```
+
+  ```json Response
+  {
+    "data": [
+      {
+        "id": "set_XYZ789",
+        "status": "completed",
+        "gross_amount": 150000,
+        "fee_amount": 4500,
+        "net_amount": 145500,
+        "payment_count": 30,
+        "period_start": "2024-01-14T00:00:00Z",
+        "period_end": "2024-01-14T23:59:59Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "per_page": 20,
+      "total": 1
+    }
+  }
+  ```
+</CodeGroup>
+
+Each settlement object gives you the gross revenue, total fees deducted, net payout amount, and the count of payments included. The `net_amount` should match the deposit that appears in your bank statement.
+
+### Step 2 — List Payments Within a Settlement
+
+Once you have a `settlement_id`, retrieve its individual payments by querying `/v1/payments?settlement_id=set_XYZ789`. Paginate through all results and match each `payment_id` against your internal order records using the `order_id` or your own metadata reference.
+
+<Note>
+  If the `payment_count` from the settlement object does not match the number of payments you retrieve from your internal system for the same period, investigate the discrepancy before closing your books. Common causes include test-mode payments, refunds reducing the count, or clock skew in your own timestamp queries.
+</Note>
+
+## Best Practices
+
+<Accordion title="Reconcile daily, not monthly">
+  Running reconciliation daily keeps discrepancies small and easy to investigate. Catching a mismatch on the day it occurs — rather than weeks later at month-end close — dramatically reduces the time needed to trace the root cause. Schedule a nightly job that processes the previous day's completed settlements.
+</Accordion>
+
+<Accordion title="Use the metadata field to store your internal reference IDs">
+  When you create an order, populate the `metadata` field with your own internal identifiers — your order UUID, invoice number, or customer ID. These values are passed through to settlement exports and the API response, making it trivial to join PayMatrix records back to your own database without relying solely on fuzzy amount or timestamp matching.
+
+  ```json
+  {
+    "amount": 9900,
+    "currency": "USD",
+    "description": "Pro subscription",
+    "metadata": {
+      "internal_order_id": "your-uuid-here",
+      "customer_id": "cust_0001"
+    }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Cross-check payment_count with your order system">
+  The `payment_count` field on each settlement object is a fast sanity check. Before drilling into individual payment records, compare this count against the number of orders your system marked as paid for the same settlement period. A mismatch signals a data integrity issue — either on your side or PayMatrix's — that warrants immediate investigation.
+</Accordion>
+
+<Accordion title="Use idempotency keys to avoid duplicate payments">
+  If your server retries a failed API call to `/v1/payments`, you risk creating duplicate charges. Pass a unique `Idempotency-Key` header on every payment creation request. PayMatrix will return the original response for any repeated request with the same key within a 24-hour window, so your customer is never charged twice even if the network fails mid-request.
+
+  ```bash
+  curl -X POST https://api.paymatrix.com/v1/payments \
+    -H "Authorization: Bearer pm_test_xxxxxxxxxxxx" \
+    -H "Idempotency-Key: your-unique-key-here" \
+    -H "Content-Type: application/json" \
+    -d '{"order_id": "ord_1A2B3C4D5E", "method": "card", ...}'
+  ```
+</Accordion>

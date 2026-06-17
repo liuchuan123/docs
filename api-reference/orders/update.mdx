@@ -1,0 +1,73 @@
+---
+title: "PATCH /orders/{id} — Update an Order"
+sidebarTitle: "Update Order"
+description: "Update the description or metadata on a pending order before payment is captured. Only pending orders can be updated."
+---
+
+You can modify certain fields on an order after it has been created, as long as the order has not yet been paid, expired, or cancelled. This is useful when you need to correct a description, append tracking information to metadata, or enrich an order with data that wasn't available at creation time. Note that the `amount` and `currency` fields are immutable once an order is created.
+
+## Endpoint
+
+```
+PATCH https://api.paymatrix.com/v1/orders/{id}
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the order to update. Order IDs are prefixed with `ord_` (e.g., `ord_1A2B3C4D5E`).
+</ParamField>
+
+<Note>
+  Only orders with a `pending` status can be updated. Attempting to update an order with a `paid`, `expired`, or `cancelled` status will return a `409 Conflict` error. Check the order status with [GET /orders/{id}](/api-reference/orders/retrieve) before attempting an update.
+</Note>
+
+## Request Body
+
+<ParamField body="description" type="string">
+  An updated human-readable description for this order. Replaces the existing description entirely. Maximum 255 characters. Pass `null` to clear the description.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Key-value pairs to merge into the order's existing metadata. New keys are added, and existing keys are overwritten with the values you provide. To remove a specific key, set its value to `null`. The merged result must not exceed 20 total keys.
+</ParamField>
+
+## Request Example
+
+<CodeGroup>
+```bash cURL
+curl -X PATCH https://api.paymatrix.com/v1/orders/ord_1A2B3C4D5E \
+  -H "Authorization: Bearer pm_test_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Order #1001 - Pro Plan (Updated)",
+    "metadata": { "promo_code": "SAVE10" }
+  }'
+```
+</CodeGroup>
+
+## Response — 200 OK
+
+A successful request returns the full updated Order object, reflecting all changes.
+
+```json
+{
+  "id": "ord_1A2B3C4D5E",
+  "status": "pending",
+  "amount": 5000,
+  "currency": "USD",
+  "description": "Order #1001 - Pro Plan (Updated)",
+  "payment_id": null,
+  "metadata": {
+    "customer_id": "cust_abc123",
+    "internal_ref": "INV-2024-001",
+    "promo_code": "SAVE10"
+  },
+  "created_at": "2024-01-15T10:30:00Z",
+  "expires_at": "2024-01-15T11:30:00Z"
+}
+```
+
+<Tip>
+  Since metadata updates are **merged** rather than replaced, you only need to include the keys you want to add or change. Omitted keys are preserved exactly as they were, so you never risk accidentally wiping existing metadata.
+</Tip>

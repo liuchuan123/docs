@@ -1,0 +1,143 @@
+---
+title: "GET /payments/{id} — Retrieve a Payment"
+sidebarTitle: "Retrieve Payment"
+description: "Retrieve a single Payment object by its ID. Returns the full payment details including status, amount, method, and any associated refunds."
+---
+
+You can retrieve the full details of any payment by providing its unique ID in the path. This endpoint is useful for confirming the current status of a payment after creation, polling for settlement updates, or auditing refund history. The response includes everything from the original transaction details to any refunds that have been issued against it.
+
+<Note>
+  Payment IDs are always prefixed with `pay_`. If you are looking up a refund directly, use the `/refunds/{id}` endpoint instead.
+</Note>
+
+## Endpoint
+
+```
+GET https://api.paymatrix.com/v1/payments/{id}
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique ID of the payment you want to retrieve — e.g. `pay_9Z8Y7X6W5V`.
+</ParamField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.paymatrix.com/v1/payments/pay_9Z8Y7X6W5V \
+  -H "Authorization: Bearer pm_test_xxxxxxxxxxxx"
+```
+
+```python Python
+import paymatrix
+
+client = paymatrix.Client(api_key="pm_test_xxxxxxxxxxxx")
+
+payment = client.payments.retrieve("pay_9Z8Y7X6W5V")
+```
+
+```javascript Node.js
+import PayMatrix from "paymatrix";
+
+const client = new PayMatrix("pm_test_xxxxxxxxxxxx");
+
+const payment = await client.payments.retrieve("pay_9Z8Y7X6W5V");
+```
+
+</CodeGroup>
+
+## Response — 200 OK
+
+A successful request returns a `200 OK` status and the full Payment object, including any refunds issued against it.
+
+```json Example Response
+{
+  "id": "pay_9Z8Y7X6W5V",
+  "order_id": "ord_1A2B3C4D5E",
+  "status": "succeeded",
+  "amount": 5000,
+  "currency": "USD",
+  "method": "card",
+  "card": {
+    "brand": "visa",
+    "last4": "4242",
+    "exp_month": 12,
+    "exp_year": 2027
+  },
+  "refunds": [],
+  "metadata": {},
+  "created_at": "2024-01-15T10:30:05Z",
+  "settled_at": "2024-01-16T09:00:00Z"
+}
+```
+
+## Response Fields
+
+<ResponseField name="id" type="string">
+  The unique identifier for this payment, prefixed with `pay_`.
+</ResponseField>
+
+<ResponseField name="order_id" type="string">
+  The ID of the order this payment is associated with.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The current payment status. Possible values: `pending`, `succeeded`, `failed`, `cancelled`.
+</ResponseField>
+
+<ResponseField name="amount" type="integer">
+  The payment amount in the smallest unit of the currency — e.g. cents for USD. A value of `5000` represents $50.00.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  The three-letter ISO 4217 currency code — e.g. `USD`.
+</ResponseField>
+
+<ResponseField name="method" type="string">
+  The payment method used: `card`, `bank_transfer`, or `wallet`.
+</ResponseField>
+
+<ResponseField name="card" type="object">
+  Present when `method` is `card`. Contains tokenized card details — the original card number is never returned.
+
+  <Expandable title="card fields">
+    <ResponseField name="brand" type="string">
+      The card network — e.g. `visa`, `mastercard`, `amex`.
+    </ResponseField>
+
+    <ResponseField name="last4" type="string">
+      The last four digits of the card number used for this payment.
+    </ResponseField>
+
+    <ResponseField name="exp_month" type="integer">
+      The card's expiry month as an integer between `1` and `12`.
+    </ResponseField>
+
+    <ResponseField name="exp_year" type="integer">
+      The card's expiry year as a 4-digit integer.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="refunds" type="array">
+  An array of Refund objects issued against this payment. Returns an empty array if no refunds have been requested. Each item in the array follows the same schema as the [Refund object](/api-reference/payments/refund).
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  The key-value metadata attached to the payment at creation time, or an empty object if none was provided.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the payment was created.
+</ResponseField>
+
+<ResponseField name="settled_at" type="string">
+  ISO 8601 timestamp of when funds were settled to your account. Returns `null` until settlement occurs — typically within one business day of a successful payment.
+</ResponseField>
+
+<Tip>
+  If you need to check whether a payment has settled, poll this endpoint and watch for a non-null `settled_at` value, or listen for the `payment.settled` webhook event to avoid unnecessary requests.
+</Tip>

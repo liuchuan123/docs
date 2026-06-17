@@ -1,0 +1,107 @@
+---
+title: "Frequently Asked Questions about PayMatrix"
+sidebarTitle: "FAQ"
+description: "Answers to the most common questions about PayMatrix accounts, payments, settlements, refunds, security, and API integration."
+---
+
+PayMatrix is designed to make payment processing straightforward, but you may still have questions as you get started or scale your integration. This page collects the most common questions from merchants and developers, organized by topic, so you can find clear and actionable answers quickly.
+
+## Account & Setup
+
+<AccordionGroup>
+  <Accordion title="How do I create a PayMatrix account?">
+    Visit [dashboard.paymatrix.io/signup](https://dashboard.paymatrix.io/signup) and complete the registration form with your business details and email address. Once submitted, you will receive a verification email — click the confirmation link to activate your account and access the dashboard.
+  </Accordion>
+
+  <Accordion title="How long does merchant onboarding take?">
+    Standard merchant onboarding is typically completed within 1–2 business days after you submit all required documents. If your application requires additional review — for example, due to your industry or transaction volumes — our compliance team will contact you directly, and the process may take up to 5 business days.
+  </Accordion>
+
+  <Accordion title="What documents do I need for KYC verification?">
+    You will need to provide a government-issued photo ID (passport or national ID card), proof of business registration (such as a certificate of incorporation or business licence), and a recent bank statement or utility bill for address verification. If you are registering as an individual sole trader, personal identification documents are sufficient. Upload all documents directly from the **Verification** section of your dashboard.
+  </Accordion>
+</AccordionGroup>
+
+## Payments
+
+<AccordionGroup>
+  <Accordion title="Which payment methods does PayMatrix support?">
+    PayMatrix supports credit and debit cards (Visa, Mastercard, American Express, and Discover), direct bank transfers via ACH and SEPA, and popular digital wallets including Apple Pay, Google Pay, and PayPal. You can enable or disable individual payment methods from the **Payment Methods** section of your dashboard without any code changes.
+  </Accordion>
+
+  <Accordion title="What currencies are supported?">
+    PayMatrix supports over 100 currencies, covering all major global markets. All payment amounts must be specified in the **smallest currency unit** — for example, $10.00 USD should be submitted as `1000` (cents), and ¥1000 JPY should be submitted as `1000` (yen, which has no sub-unit). You can find more about multi-currency amounts in the [API Overview](/api-reference/overview).
+  </Accordion>
+
+  <Accordion title="Is there a minimum or maximum payment amount?">
+    The minimum payment amount is **50 cents** (or the equivalent in your chosen currency's smallest unit). There is no hard maximum by default, although very large transactions may be subject to additional fraud review. If your business regularly processes high-value payments, contact [support@paymatrix.io](mailto:support@paymatrix.io) to discuss elevated limits for your account.
+  </Accordion>
+
+  <Accordion title="What happens if a payment fails?">
+    When a payment fails, the API returns an error response with a specific `code` field explaining the reason — for example, `card_declined` or `insufficient_funds`. No funds are captured and the customer's card is not charged. You should surface a clear error message to your customer and, where appropriate, prompt them to retry with a different payment method. See the [Errors](/errors) page for a full list of failure codes and recommended handling.
+  </Accordion>
+</AccordionGroup>
+
+## Settlements
+
+<AccordionGroup>
+  <Accordion title="When will funds be deposited into my bank account?">
+    PayMatrix settles funds on a **T+1 or T+2** schedule, meaning collected payments are deposited into your nominated bank account one to two business days after the transaction date. The exact schedule depends on your account tier and the currency of settlement. You can view upcoming and historical settlement records in the **Settlements** section of your dashboard.
+  </Accordion>
+
+  <Accordion title="Can I change my settlement bank account?">
+    Yes, you can update your settlement bank account at any time from **Settings → Bank Accounts** in the dashboard. For security, any new bank account must go through a micro-deposit verification before it becomes active for settlement. Settlements already in progress will be paid to your existing account; the new account takes effect from the next settlement cycle.
+  </Accordion>
+
+  <Accordion title="Why is my settlement amount less than my gross collections?">
+    PayMatrix deducts processing fees before transferring settlement funds, so the deposited amount will be less than your gross payment volume. Your applicable fee rates are shown in **Settings → Billing**, and a full fee breakdown is included on every settlement report. If you believe there is a discrepancy, download the settlement report and compare it against your transaction log, then contact support with your `settlement_id` if you need further clarification.
+  </Accordion>
+</AccordionGroup>
+
+## Refunds
+
+<AccordionGroup>
+  <Accordion title="How long do refunds take?">
+    Once a refund is initiated via the API or dashboard, funds are typically returned to the customer within **5–10 business days**, depending on their card issuer or bank. PayMatrix processes the refund on our end immediately, but the time for the credit to appear is outside our control and varies by financial institution. You can monitor refund status by retrieving the refund object from the API or checking the **Refunds** tab in the dashboard.
+  </Accordion>
+
+  <Accordion title="Can I issue a partial refund?">
+    Yes, PayMatrix fully supports partial refunds. When creating a refund via the API, pass the `amount` parameter with the value you want to return (in the smallest currency unit) rather than omitting it, which would trigger a full refund. You can issue multiple partial refunds against a single payment as long as the cumulative refunded amount does not exceed the original payment amount.
+  </Accordion>
+
+  <Accordion title="Can I cancel a refund after initiating it?">
+    Refunds cannot be cancelled once they have been submitted to the payment network, which typically happens within seconds of the API call. If you initiated a refund in error, contact [support@paymatrix.io](mailto:support@paymatrix.io) immediately with the `refund_id` — in rare cases where the refund has not yet been forwarded, our team may be able to intervene. Otherwise, you would need to collect a new payment from the customer.
+  </Accordion>
+</AccordionGroup>
+
+## Security & Compliance
+
+<AccordionGroup>
+  <Accordion title="Is PayMatrix PCI-DSS compliant?">
+    Yes, PayMatrix is certified as a **PCI-DSS Level 1** service provider, the highest level of compliance in the payment card industry. All cardholder data is encrypted in transit and at rest, and our infrastructure undergoes annual third-party audits. Because PayMatrix handles card data on your behalf, most merchants qualify for the simplified SAQ A self-assessment questionnaire rather than a full audit.
+  </Accordion>
+
+  <Accordion title="How do I rotate my API keys?">
+    Navigate to **Settings → API Keys** in your dashboard and click **Generate New Key** next to the key you want to rotate. Your new key is active immediately. Update your integration to use the new key, then revoke the old key from the same screen once you have confirmed everything is working. We recommend rotating keys on a regular schedule (every 90 days) as a security best practice.
+  </Accordion>
+
+  <Accordion title="What should I do if I suspect my API key is compromised?">
+    Revoke the affected key immediately from **Settings → API Keys** in the dashboard — revocation takes effect instantly and all requests using that key will be rejected. Generate a replacement key and update your application. Then review your recent API logs (**Logs** in the dashboard) for any suspicious activity and contact [security@paymatrix.io](mailto:security@paymatrix.io) to report the incident so our team can assist with further investigation.
+  </Accordion>
+</AccordionGroup>
+
+## Integration
+
+<AccordionGroup>
+  <Accordion title="Do you have an SDK for my language?">
+    PayMatrix provides official SDKs for **Node.js, Python, Ruby, PHP, Go, and Java**. Each SDK wraps the REST API, handles authentication, and includes type definitions or docstrings to improve your development experience. Find installation instructions in the [Web Checkout](/integration/checkout) and [Mobile SDK](/integration/mobile) guides.
+  </Accordion>
+
+  <Accordion title="Where is the sandbox environment?">
+    The sandbox base URL is `https://sandbox.api.paymatrix.io/v1`. Use your **sandbox API keys** (prefixed with `sk_test_`) from the dashboard to make test requests — no real money is moved and no real card networks are contacted. The sandbox mirrors production behaviour and supports all endpoints, making it ideal for end-to-end integration testing before going live.
+  </Accordion>
+
+  <Accordion title="How do I test webhooks?">
+    In the dashboard, go to **Developers → Webhooks** and click **Send Test Event** next to any configured endpoint to fire a sample payload. Alternatively, you can use the PayMatrix CLI (`paymatrix webhooks trigger <event_type>`) to trigger specific events from your terminal. For local development, tools like [ngrok](https://ngrok.com) or the PayMatrix CLI's built-in tunnel (`paymatrix listen`) can forward webhook events to your localhost server.
+  </Accordion>
+</AccordionGroup>

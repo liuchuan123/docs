@@ -1,0 +1,163 @@
+---
+title: "Paginating List Responses in the PayMatrix API"
+sidebarTitle: "Pagination"
+description: "PayMatrix list endpoints return paginated results. Use page and per_page query parameters to navigate through large result sets."
+---
+
+Whenever you call a PayMatrix endpoint that returns a collection of resources — such as `GET /payments` or `GET /merchants/settlements` — the results are split into pages. Pagination prevents extremely large payloads and keeps response times predictable regardless of how many records exist in your account. This page explains how to request specific pages, how to interpret the pagination metadata in every response, and how to narrow results using date filters.
+
+## Paginated Endpoints
+
+The following list endpoints all support the pagination parameters described on this page:
+
+- `GET /payments`
+- `GET /merchants/settlements`
+- `GET /webhooks/events`
+
+## Query Parameters
+
+Control which page you receive by appending these query parameters to any list request:
+
+<ParamField query="page" type="integer" default="1">
+  The page number to retrieve. Page numbering starts at `1`. Requesting a page beyond the last available page returns an empty `data` array.
+</ParamField>
+
+<ParamField query="per_page" type="integer" default="20">
+  The number of items to include per page. Accepted range is `1–100`. Values outside this range are clamped to the nearest bound.
+</ParamField>
+
+## Example Request
+
+The following request retrieves the second page of payments with 50 results per page:
+
+```bash
+curl "https://api.paymatrix.com/v1/payments?page=2&per_page=50" \
+  -H "Authorization: Bearer pm_test_xxxxxxxxxxxx"
+```
+
+## Response Structure
+
+Every paginated response wraps the results in a `data` array and includes a `pagination` object at the top level so you always know exactly where you are in the full result set.
+
+```json
+{
+  "data": [
+    { "id": "pay_AbCdEfGh", "amount": 4999, "currency": "usd", "status": "succeeded" },
+    { "id": "pay_IjKlMnOp", "amount": 1200, "currency": "usd", "status": "pending" }
+  ],
+  "pagination": {
+    "page": 2,
+    "per_page": 50,
+    "total": 243,
+    "total_pages": 5
+  }
+}
+```
+
+### Pagination Object Fields
+
+<ResponseField name="page" type="integer" required>
+  The current page number returned in this response. Matches the `page` parameter you supplied, or `1` if none was provided.
+</ResponseField>
+
+<ResponseField name="per_page" type="integer" required>
+  The maximum number of items included per page in this response. Matches your `per_page` parameter, or `20` if none was provided.
+</ResponseField>
+
+<ResponseField name="total" type="integer" required>
+  The total number of items across **all** pages that match the current query (including any filters). Use this value to display record counts in your UI.
+</ResponseField>
+
+<ResponseField name="total_pages" type="integer" required>
+  The total number of pages available given the current `per_page` value and the total number of matching items. When `page` equals `total_pages`, you are on the last page.
+</ResponseField>
+
+<Note>
+  When the `data` array is empty and `total` is `0`, no records matched your query — this is not an error. A `404` is never returned for an empty list; you will always receive a `200` with an empty array.
+</Note>
+
+## Iterating Through All Pages
+
+To retrieve every record in a result set, keep fetching pages until you reach the last one. You can detect the last page when `page` equals `total_pages` or when the `data` array is empty.
+
+<CodeGroup>
+
+```python Python
+import requests
+
+api_key = "pm_test_xxxxxxxxxxxx"
+page = 1
+all_payments = []
+
+while True:
+    response = requests.get(
+        "https://api.paymatrix.com/v1/payments",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"page": page, "per_page": 100},
+    )
+    response.raise_for_status()
+    body = response.json()
+
+    all_payments.extend(body["data"])
+
+    pagination = body["pagination"]
+    if page >= pagination["total_pages"]:
+        break
+
+    page += 1
+
+print(f"Fetched {len(all_payments)} payments across {page} pages.")
+```
+
+```javascript Node.js
+const apiKey = "pm_test_xxxxxxxxxxxx";
+let page = 1;
+const allPayments = [];
+
+while (true) {
+  const response = await fetch(
+    `https://api.paymatrix.com/v1/payments?page=${page}&per_page=100`,
+    { headers: { Authorization: `Bearer ${apiKey}` } }
+  );
+  const body = await response.json();
+
+  allPayments.push(...body.data);
+
+  if (page >= body.pagination.total_pages) break;
+  page++;
+}
+
+console.log(`Fetched ${allPayments.length} payments across ${page} pages.`);
+```
+
+</CodeGroup>
+
+## Filtering by Date Range
+
+Most list endpoints accept `from` and `to` query parameters to restrict results to a specific time window. Both values must be valid **ISO 8601** timestamps in UTC. You can use either parameter on its own or combine them.
+
+<ParamField query="from" type="string">
+  Return only items created at or after this timestamp. Must be a valid ISO 8601 datetime string in UTC (e.g., `2024-01-01T00:00:00Z`).
+</ParamField>
+
+<ParamField query="to" type="string">
+  Return only items created at or before this timestamp. Must be a valid ISO 8601 datetime string in UTC (e.g., `2024-01-31T23:59:59Z`).
+</ParamField>
+
+The example below retrieves all payments created during January 2024:
+
+```bash
+curl "https://api.paymatrix.com/v1/payments?from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z" \
+  -H "Authorization: Bearer pm_test_xxxxxxxxxxxx"
+```
+
+You can combine date filters with pagination parameters in a single request:
+
+```bash
+curl "https://api.paymatrix.com/v1/payments?from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&page=2&per_page=50" \
+  -H "Authorization: Bearer pm_test_xxxxxxxxxxxx"
+```
+
+<Tip>
+  When building date-range exports or reports, set `per_page=100` to minimise the number of round trips. The `total` and `total_pages` fields in the first response let you determine upfront how many requests you will need to make.
+</Tip>
