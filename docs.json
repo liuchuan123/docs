@@ -1,114 +1,108 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
-  "name": "PayMatrix",
+  "name": "PMP Payment",
   "colors": {
-    "primary": "#fb6c24",
-    "light": "#fca024",
-    "dark": "#6c4c24"
+    "primary": "#2563eb",
+    "light": "#eff6ff",
+    "dark": "#020617"
   },
   "favicon": "/favicon.svg",
+  "modeToggle": true,
+  "topbarCtaButton": {
+    "name": "商户门户",
+    "url": "https://portal.example.com",
+    "type": "primary"
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "帮助文档",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "概览",
             "pages": [
-              "introduction",
-              "quickstart",
-              "authentication"
+              "index",
+              "getting-started/quickstart"
             ]
           },
           {
-            "group": "Core Concepts",
+            "group": "入驻指南",
             "pages": [
-              "concepts/payments",
-              "concepts/merchants",
-              "concepts/orders",
-              "concepts/settlements"
+              "onboarding/overview",
+              "onboarding/registration",
+              "onboarding/verification",
+              "onboarding/account-setup"
             ]
           },
           {
-            "group": "Guides",
+            "group": "商户门户",
             "pages": [
-              "guides/accept-payments",
-              "guides/refunds",
-              "guides/webhooks",
-              "guides/reconciliation"
+              "portal/dashboard",
+              "portal/orders",
+              "portal/settlements",
+              "portal/developer-settings",
+              "portal/account"
             ]
           },
           {
-            "group": "Integration",
+            "group": "核心概念",
             "pages": [
-              "integration/checkout",
-              "integration/mobile",
-              "integration/testing"
-            ]
-          },
-          {
-            "group": "Support",
-            "pages": [
-              "faq",
-              "errors"
+              "concepts/payment-flow",
+              "concepts/order-lifecycle",
+              "concepts/settlement",
+              "concepts/ledger"
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "tab": "商户接入",
         "groups": [
           {
-            "group": "Overview",
+            "group": "接入准备",
             "pages": [
-              "api-reference/overview",
-              "api-reference/authentication",
-              "api-reference/errors",
-              "api-reference/pagination"
+              "integration/overview",
+              "integration/authentication",
+              "integration/ip-whitelist",
+              "integration/sandbox"
             ]
           },
           {
-            "group": "Payments",
+            "group": "支付 API",
             "pages": [
-              "api-reference/payments/create",
-              "api-reference/payments/retrieve",
-              "api-reference/payments/list",
-              "api-reference/payments/refund"
+              "api/payment/create",
+              "api/payment/query",
+              "api/payment/refund",
+              "api/payment/query-refund"
             ]
           },
           {
-            "group": "Orders",
+            "group": "通知回调",
             "pages": [
-              "api-reference/orders/create",
-              "api-reference/orders/retrieve",
-              "api-reference/orders/update"
+              "api/webhook/overview",
+              "api/webhook/events",
+              "api/webhook/signature"
             ]
           },
           {
-            "group": "Merchants",
+            "group": "收银台集成",
             "pages": [
-              "api-reference/merchants/profile",
-              "api-reference/merchants/settlements"
+              "checkout/overview",
+              "checkout/hosted",
+              "checkout/custom"
             ]
           },
           {
-            "group": "Webhooks",
+            "group": "附录",
             "pages": [
-              "api-reference/webhooks/overview",
-              "api-reference/webhooks/events"
+              "appendix/errors",
+              "appendix/currency"
             ]
           }
         ]
       }
     ]
-  },
-  "navbar": {
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.paymatrix.com"
-    }
   },
   "footer": {
     "socials": {}
