@@ -248,3 +248,10 @@ curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
 3. 确认签名原文中的换行符为 `\n`（不是 `\r\n`）
 4. 确认 Body 部分是对**原始完整请求体**做 SHA256
 5. 检查时间戳是否在 ±2 分钟窗口内
+
+## 相关页面
+
+- [接入概览](/integration/overview) — 完整安全机制说明
+- [IP 白名单](/integration/ip-whitelist) — 额外安全防护
+- [创建支付](/api/payment/create) — 带签名的接口示例
+- [错误码参考](/appendix/errors) — 签名相关错误码

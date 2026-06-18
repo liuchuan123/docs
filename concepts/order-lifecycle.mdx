@@ -116,6 +116,12 @@ description: "订单状态流转与各状态说明"
 
 一个订单可能有多笔交易（如重试支付），每笔交易独立记录。
 
+## 相关页面
+
+- [支付流程](/concepts/payment-flow) — 完整支付流程说明
+- [支付查询 API](/api/payment/query) — 主动查询支付状态
+- [退款发起 API](/api/payment/refund) — 对已支付订单退款
+
 ## 最佳实践
 
 - **以 Webhook 为准**：不要仅依赖主动查询结果，Webhook 是状态变更的权威来源

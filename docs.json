@@ -1,17 +1,17 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "aspen",
+  "theme": "willow",
   "name": "PayMatrix",
   "logo": {
-    "dark": "/logo/pmp_logo.png",
-    "light": "/logo/pmp_logo.png"
+    "dark": { "src": "/logo/pmp_logo.png" },
+    "light": { "src": "/logo/pmp_logo.png" }
   },
   "favicon": "/logo/icon.png",
   "modeToggle": true,
   "colors": {
-    "primary": "#0052FF",
-    "light": "#F5F8FF",
-    "dark": "#0A0D14"
+    "primary": "#2563EB",
+    "light": "#EFF6FF",
+    "dark": "#0F172A"
   },
   "navbar": {
     "primary": {
@@ -89,14 +89,6 @@
               "api/webhook/overview",
               "api/webhook/events",
               "api/webhook/signature"
-            ]
-          },
-          {
-            "group": "收银台 API",
-            "pages": [
-              "api/checkout/payment-methods",
-              "api/checkout/init",
-              "api/checkout/submit"
             ]
           },
           {
