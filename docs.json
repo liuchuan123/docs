@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "willow",
+  "theme": "aspen",
   "name": "PayMatrix",
   "logo": {
     "dark": "/logo/pmp_logo.png",
@@ -9,9 +9,9 @@
   "favicon": "/logo/icon.png",
   "modeToggle": true,
   "colors": {
-    "primary": "#2563EB",
-    "light": "#EFF6FF",
-    "dark": "#0F172A"
+    "primary": "#0052FF",
+    "light": "#F5F8FF",
+    "dark": "#0A0D14"
   },
   "navbar": {
     "primary": {
