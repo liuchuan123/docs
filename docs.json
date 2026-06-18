@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "prism",
+  "theme": "aspen",
   "name": "PayMatrix",
   "logo": {
     "dark": "/logo/dark.svg",
@@ -8,47 +8,11 @@
   },
   "favicon": "/favicon.svg",
   "modeToggle": true,
-  "openapi": {
-    "merchant": {
-      "source": "/openapi.yaml",
-      "title": "PayMatrix Merchant API"
-    }
-  },
-  "api": {
-    "playground": {
-      "mode": "show"
-    }
-  },
   "colors": {
     "primary": "#0052FF",
     "light": "#F5F8FF",
-    "dark": "#0A0D14",
-    "ultraLight": "#F0F4FF",
-    "ultraDark": "#06080D",
-    "background": {
-      "light": "#FFFFFF",
-      "dark": "#0A0D14"
-    }
+    "dark": "#0A0D14"
   },
-  "topbar": {
-    "style": "gradient",
-    "gradient": {
-      "from": "#0052FF",
-      "to": "#6C47FF"
-    }
-  },
-  "anchors": [
-    {
-      "name": "商户门户",
-      "icon": "house",
-      "url": "https://merchant.paymatrixpay.com"
-    },
-    {
-      "name": "支持",
-      "icon": "question",
-      "url": "mailto:support@paymatrixpay.com"
-    }
-  ],
   "navbar": {
     "primary": {
       "type": "button",
