@@ -6,24 +6,32 @@ description: "使用 PayMatrix 托管收银台完成支付接入"
 
 托管收银台是 PayMatrix 提供的开箱即用的支付页面，商户只需将用户重定向到该页面即可完成支付。
 
+<Tip>
+  推荐大多数商户使用托管收银台，**零前端开发**即可接入，且无需关心 PCI 合规问题。
+</Tip>
+
 ## 集成流程
 
-```
-1. 用户在商户网站下单
-        ↓
-2. 商户服务端调用 API 创建支付订单
-        ↓
-3. 获得 pay_url
-        ↓
-4. 将用户重定向到 pay_url
-        ↓
-5. 用户在托管收银台完成支付
-        ↓
-6. 支付成功 → 跳转回 redirect_url
-   支付取消 → 跳转回 cancel_url
-        ↓
-7. 平台推送 Webhook 通知商户
-```
+<Steps>
+  <Step title="用户下单">
+    用户在商户网站选择商品并提交订单。
+  </Step>
+  <Step title="创建支付订单">
+    商户服务端调用 <a href="/api/payment/create">POST /api/merchant/payment/create</a>，获取 pay_url。
+  </Step>
+  <Step title="重定向到收银台">
+    将用户浏览器重定向到 pay_url。
+  </Step>
+  <Step title="用户完成支付">
+    用户在托管收银台选择支付方式并完成付款。
+  </Step>
+  <Step title="跳转回商户">
+    支付成功跳转 redirect_url，取消则跳转 cancel_url。
+  </Step>
+  <Step title="Webhook 确认">
+    平台推送 <code>order.payment.succeeded</code> 事件，商户更新订单状态。
+  </Step>
+</Steps>
 
 ## 第一步：创建支付订单
 

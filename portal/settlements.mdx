@@ -6,6 +6,10 @@ description: "商户结算查询与管理"
 
 结算管理模块用于查看资金结算情况、结算明细和提现记录。
 
+<Info>
+  结算周期和费率以签约协议为准。如有疑问请联系客户经理或查看 [结算体系说明](/concepts/settlement)。
+</Info>
+
 ## 结算周期
 
 PayMatrix 支持以下结算周期：
@@ -69,3 +73,14 @@ PayMatrix 支持以下结算周期：
 ```
 支付成功 → 待结算余额 →（到达结算日）→ 可用余额 →（提现）→ 银行账户
 ```
+
+## 相关页面
+
+<CardGroup cols={2}>
+  <Card title="结算体系" icon="bank" href="/concepts/settlement">
+    了解结算周期与资金流转
+  </Card>
+  <Card title="账务体系" icon="document-text" href="/concepts/ledger">
+    四层账务架构说明
+  </Card>
+</CardGroup>

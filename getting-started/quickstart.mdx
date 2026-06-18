@@ -10,19 +10,43 @@ description: "从商户入驻到完成第一笔支付的完整接入流程"
 
 PayMatrix 为商户提供以下核心服务：
 
-- **OpenAPI 网关**：商户服务端调用接口的入口，支持 RSA 签名鉴权
-- **托管收银台**：面向消费者的支付页面，支持银行卡、电子钱包等多种支付方式
-- **商户门户**：商户管理后台，用于交易查询、结算管理、开发者配置
-- **Webhook 通知**：异步推送支付、退款、争议等事件到商户服务端
+<CardGroup cols={2}>
+  <Card title="OpenAPI 网关" icon="server">
+    商户服务端调用接口的入口，支持 RSA 签名鉴权
+  </Card>
+  <Card title="托管收银台" icon="credit-card">
+    面向消费者的支付页面，支持银行卡、电子钱包等多种支付方式
+  </Card>
+  <Card title="商户门户" icon="chart-bar">
+    交易查询、结算管理、开发者配置等管理后台
+  </Card>
+  <Card title="Webhook 通知" icon="webhook">
+    异步推送支付、退款、争议等事件到商户服务端
+  </Card>
+</CardGroup>
 
 ## 接入流程总览
 
-1. **商户入驻** — 在商户门户注册企业信息，提交资质材料，等待审核通过
-2. **获取 API 密钥** — 审核通过后，在「开发者设置」中上传 RSA 公钥、获取商户 ID
-3. **配置 Webhook** — 设置接收事件通知的回调地址和签名密钥
-4. **沙盒测试** — 在沙盒环境中调用 API，验证签名和业务流程
-5. **集成收银台** — 选择托管收银台或自建方案完成前端支付流程
-6. **上线** — 切换到生产环境密钥，正式对外提供服务
+<Steps>
+  <Step title="商户入驻">
+    在商户门户注册企业信息，提交资质材料，等待审核通过。
+  </Step>
+  <Step title="获取 API 密钥">
+    审核通过后，在「开发者设置」中上传 RSA 公钥、获取商户 ID。
+  </Step>
+  <Step title="配置 Webhook">
+    设置接收事件通知的回调地址和签名密钥。
+  </Step>
+  <Step title="沙盒测试">
+    在沙盒环境中调用 API，验证签名和业务流程。
+  </Step>
+  <Step title="集成收银台">
+    选择托管收银台或自建方案完成前端支付流程。
+  </Step>
+  <Step title="上线">
+    切换到生产环境密钥，正式对外提供服务。
+  </Step>
+</Steps>
 
 ## 环境与地址
 
@@ -108,6 +132,10 @@ curl -X POST "https://api-sbx.paymetrixpay.com/api/merchant/payment/create" \
 
 支付完成后，平台会向你的 Webhook 地址推送 `order.payment.succeeded` 事件。
 
+<Warning>
+  务必以 Webhook 通知作为订单状态变更的权威来源，前端重定向仅用于提升用户体验，不可作为发货依据。
+</Warning>
+
 ### 4. 查询支付状态（可选）
 
 ```bash
@@ -120,7 +148,17 @@ curl -X GET "https://api-sbx.paymetrixpay.com/api/merchant/order/payment/query/T
 
 ## 下一步
 
-- 了解完整的 [签名与鉴权](/integration/authentication) 规范
-- 查看 [支付 API](/api/payment/create) 详细文档
-- 了解 [Webhook 通知](/api/webhook/overview) 机制
-- 在 [沙盒环境](/integration/sandbox) 中完成联调测试
+<CardGroup cols={2}>
+  <Card title="签名与鉴权" icon="key" href="/integration/authentication">
+    了解 RSA 签名规则与请求头要求
+  </Card>
+  <Card title="创建支付" icon="credit-card" href="/api/payment/create">
+    查看完整的接口参数与代码示例
+  </Card>
+  <Card title="Webhook 通知" icon="webhook" href="/api/webhook/overview">
+    配置回调地址与签名验签
+  </Card>
+  <Card title="沙盒环境" icon="beaker" href="/integration/sandbox">
+    使用测试卡号完成联调
+  </Card>
+</CardGroup>
