@@ -1,19 +1,59 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "luma",
+  "theme": "prism",
   "name": "PayMatrix",
-  "colors": {
-    "primary": "#2563eb",
-    "light": "#eff6ff",
-    "dark": "#020617"
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
   },
   "favicon": "/favicon.svg",
   "modeToggle": true,
+  "openapi": {
+    "merchant": {
+      "source": "/openapi.yaml",
+      "title": "PayMatrix Merchant API"
+    }
+  },
+  "api": {
+    "playground": {
+      "mode": "show"
+    }
+  },
+  "colors": {
+    "primary": "#0052FF",
+    "light": "#F5F8FF",
+    "dark": "#0A0D14",
+    "ultraLight": "#F0F4FF",
+    "ultraDark": "#06080D",
+    "background": {
+      "light": "#FFFFFF",
+      "dark": "#0A0D14"
+    }
+  },
+  "topbar": {
+    "style": "gradient",
+    "gradient": {
+      "from": "#0052FF",
+      "to": "#6C47FF"
+    }
+  },
+  "anchors": [
+    {
+      "name": "商户门户",
+      "icon": "house",
+      "url": "https://merchant.paymatrixpay.com"
+    },
+    {
+      "name": "支持",
+      "icon": "question",
+      "url": "mailto:support@paymatrixpay.com"
+    }
+  ],
   "navbar": {
     "primary": {
       "type": "button",
-      "label": "商户门户",
-      "href": "https://portal.example.com"
+      "label": "进入商户门户",
+      "href": "https://merchant.paymatrixpay.com"
     }
   },
   "navigation": {
@@ -88,6 +128,14 @@
             ]
           },
           {
+            "group": "收银台 API",
+            "pages": [
+              "api/checkout/payment-methods",
+              "api/checkout/init",
+              "api/checkout/submit"
+            ]
+          },
+          {
             "group": "收银台集成",
             "pages": [
               "checkout/overview",
@@ -107,6 +155,8 @@
     ]
   },
   "footer": {
-    "socials": {}
+    "socials": {
+      "website": "https://www.paymatrixpay.com"
+    }
   }
 }

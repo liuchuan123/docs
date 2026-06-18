@@ -119,7 +119,7 @@ description: "POST /api/merchant/payment/create 创建支付订单"
   "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
-    "pay_url": "https://checkout.example.com/pay/xxx"
+    "pay_url": "https://cashier-api.paymatrixpay.com/pay/xxx"
   }
 }
 ```
@@ -145,7 +145,7 @@ description: "POST /api/merchant/payment/create 创建支付订单"
   <Tab title="cURL">
 
 ```bash
-curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
+curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
   -H "Content-Type: application/json" \
   -H "X-Merchant-Id: 10001" \
   -H "X-Timestamp: 1737004800000" \
@@ -185,7 +185,7 @@ curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
   "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
-    "pay_url": "https://checkout.example.com/pay/1000126011700000100001"
+    "pay_url": "https://cashier-api.paymatrixpay.com/pay/1000126011700000100001"
   }
 }
 ```

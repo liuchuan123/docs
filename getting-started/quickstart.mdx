@@ -28,8 +28,8 @@ PayMatrix 为商户提供以下核心服务：
 
 | 环境     | OpenAPI 地址                         | 说明                       |
 | -------- | ------------------------------------ | -------------------------- |
-| 沙盒环境 | `https://sandbox-openapi.example.com/api` | 用于联调测试，无真实资金   |
-| 生产环境 | `https://openapi.example.com/api`         | 正式环境，需审核后开通     |
+| 沙盒环境 | `https://api-sbx.paymetrixpay.com/api` | 用于联调测试，无真实资金   |
+| 生产环境 | `https://openapi.paymatrixpay.com/api`         | 正式环境，需审核后开通     |
 
 OpenAPI 接口前缀：
 - 支付接口：`/api/merchant/payment`
@@ -63,7 +63,7 @@ OpenAPI 接口前缀：
 ### 1. 商户服务端创建支付订单
 
 ```bash
-curl -X POST "https://sandbox-openapi.example.com/api/merchant/payment/create" \
+curl -X POST "https://api-sbx.paymetrixpay.com/api/merchant/payment/create" \
   -H "Content-Type: application/json" \
   -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
   -H "X-Timestamp: 1737004800000" \
@@ -99,7 +99,7 @@ curl -X POST "https://sandbox-openapi.example.com/api/merchant/payment/create" \
   "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
-    "pay_url": "https://checkout.example.com/pay/xxx"
+    "pay_url": "https://cashier-api.paymatrixpay.com/pay/xxx"
   }
 }
 ```
@@ -111,7 +111,7 @@ curl -X POST "https://sandbox-openapi.example.com/api/merchant/payment/create" \
 ### 4. 查询支付状态（可选）
 
 ```bash
-curl -X GET "https://sandbox-openapi.example.com/api/merchant/order/payment/query/TXN20260101001" \
+curl -X GET "https://api-sbx.paymetrixpay.com/api/merchant/order/payment/query/TXN20260101001" \
   -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
   -H "X-Timestamp: 1737004800000" \
   -H "X-Nonce: a3f7b2c1d4e5" \

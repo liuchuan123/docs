@@ -30,7 +30,7 @@ description: "使用 PayMatrix 托管收银台完成支付接入"
 商户服务端调用 OpenAPI 创建支付订单：
 
 ```bash
-curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
+curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
   -H "Content-Type: application/json" \
   -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
   -H "X-Timestamp: 1737004800000" \
@@ -73,7 +73,7 @@ curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
   "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
-    "pay_url": "https://checkout.example.com/pay/1000126011700000100001"
+    "pay_url": "https://cashier-api.paymatrixpay.com/pay/1000126011700000100001"
   }
 }
 ```
@@ -84,7 +84,7 @@ curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
 
 **HTTP 重定向**（推荐）：
 ```
-HTTP 302 Location: https://checkout.example.com/pay/1000126011700000100001
+HTTP 302 Location: https://cashier-api.paymatrixpay.com/pay/1000126011700000100001
 ```
 
 **前端跳转**：
