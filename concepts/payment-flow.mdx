@@ -32,16 +32,11 @@ description: "PayMatrix 完整支付流程说明"
 
 商户服务端调用 `POST /api/merchant/payment/create` 创建支付订单。
 
-请求参数包含：
-- 商户交易号（唯一标识）
-- 订单金额与币种
-- 商品信息
-- 客户信息
-- 支付成功/取消后的跳转地址
+<Info>
+  **请求参数包含：** 商户交易号、订单金额与币种、商品信息、客户信息、跳转地址
+</Info>
 
-平台返回：
-- `order_id`：平台订单号
-- `pay_url`：收银台地址，引导用户支付
+平台返回 `order_id`（平台订单号）和 `pay_url`（收银台地址），引导用户支付。
 
 ### 2. 商户重定向消费者
 
@@ -56,13 +51,17 @@ description: "PayMatrix 完整支付流程说明"
 
 ### 4. 支付方式
 
-支持的支付方式包括：
-
-| 类型       | 说明                       |
-| ---------- | -------------------------- |
-| 银行卡     | Visa, Mastercard, AMEX 等  |
-| 电子钱包   | Alipay, WeChat Pay 等      |
-| 银行转账   | 银行直连支付               |
+<CardGroup cols={3}>
+  <Card title="银行卡" icon="credit-card">
+    Visa / Mastercard / AMEX 等国际卡组织
+  </Card>
+  <Card title="电子钱包" icon="wallet">
+    Alipay / WeChat Pay 等数字钱包
+  </Card>
+  <Card title="银行转账" icon="bank">
+    银行直连支付通道
+  </Card>
+</CardGroup>
 
 ### 5. 消费者提交支付
 
@@ -115,3 +114,14 @@ PAYING（支付中）
 
 - 同一 `merchant_transaction_id` 不可重复创建支付
 - 如网络超时未收到响应，建议以相同参数重试（平台保证幂等）
+
+## 相关页面
+
+<CardGroup cols={2}>
+  <Card title="创建支付 API" icon="credit-card" href="/api/payment/create">
+    查看完整请求参数与代码示例
+  </Card>
+  <Card title="Webhook 通知" icon="webhook" href="/api/webhook/overview">
+    接收支付结果异步通知
+  </Card>
+</CardGroup>
