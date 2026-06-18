@@ -28,7 +28,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 
 ### 2. 上传公钥
 
-登录商户门户，进入「开发者设置 → API 密钥」：
+登录商户门户，进入「开发设置 → API 密钥」：
 
 1. 点击「上传公钥」
 2. 将 `public_key.pem` 文件内容粘贴到输入框
@@ -40,7 +40,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 
 为增强安全性，建议配置 IP 白名单限制哪些服务器可以调用 OpenAPI。
 
-进入「开发者设置 → 安全设置」：
+进入「开发设置 → 安全设置」：
 
 1. 添加允许调用 API 的服务器出口 IP
 2. 多个 IP 使用逗号分隔
@@ -56,7 +56,7 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 
 Webhook 用于接收支付状态变更的实时通知。
 
-进入「开发者设置 → Webhook 管理」：
+进入「开发设置 → Webhook 管理」：
 
 1. 点击「添加 Webhook」
 2. 填写你的回调 URL（需支持 HTTPS）

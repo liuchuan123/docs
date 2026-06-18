@@ -3,11 +3,20 @@
   "theme": "aspen",
   "name": "PayMatrix",
   "logo": {
-    "dark": "/logo/pmp_logo.png",
+    "dark": "/logo/logo_dark.png",
     "light": "/logo/pmp_logo.png"
   },
   "favicon": "/logo/icon.png",
   "modeToggle": true,
+  "api": {
+    "openapi": "openapi.yaml",
+    "playground": {
+      "display": "interactive"
+    },
+    "mdx": {
+      "server": "https://openapi.paymatrixpay.com"
+    }
+  },
   "colors": {
     "primary": "#0052FF",
     "light": "#F5F8FF",
