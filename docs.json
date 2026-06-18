@@ -3,10 +3,10 @@
   "theme": "aspen",
   "name": "PayMatrix",
   "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
+    "dark": "/logo/pmp_logo.png",
+    "light": "/logo/pmp_logo.png"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/icon.png",
   "modeToggle": true,
   "colors": {
     "primary": "#0052FF",

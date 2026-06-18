@@ -255,3 +255,70 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RefundQueryResponse" }
+
+  /web/checkout/payment-methods:
+    get:
+      tags: [收银台]
+      summary: 获取支付方式
+      operationId: getPaymentMethods
+      parameters:
+        - name: orderId
+          in: query
+          required: true
+          schema: { type: string }
+          description: 订单 ID
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonResult"
+
+  /web/checkout/init:
+    post:
+      tags: [收银台]
+      summary: 初始化支付
+      operationId: initCheckout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, paymentMethodCode]
+              properties:
+                orderId: { type: string, description: 订单 ID }
+                paymentMethodCode: { type: string, description: 支付方式编码 }
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonResult"
+
+  /web/payment/submit:
+    post:
+      tags: [收银台]
+      summary: 提交支付
+      operationId: submitPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, terminal, card]
+              properties:
+                orderId: { type: string }
+                terminal: { type: object }
+                card: { type: object }
+                deviceId: { type: string }
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonResult"
