@@ -1,6 +1,6 @@
 ---
 title: "创建支付"
-description: "POST /merchant/payment/create 创建支付订单"
+description: "POST /api/merchant/payment/create 创建支付订单"
 ---
 
 
@@ -115,7 +115,7 @@ description: "POST /merchant/payment/create 创建支付订单"
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
@@ -131,13 +131,13 @@ description: "POST /merchant/payment/create 创建支付订单"
 
 ## 错误码
 
-| 错误码 | 说明                         |
-| ------ | ---------------------------- |
-| 0      | 成功                         |
-| 40001  | 参数校验失败                 |
-| 40002  | 商户交易号重复               |
-| 40003  | 签名验证失败                 |
-| 50001  | 系统错误                     |
+| 错误码 | 说明 |
+| --- | --- |
+| 200 | 成功 |
+| 1001005 | 商户交易号重复 |
+| 1001015 | 参数校验失败 |
+| 1001016 | 签名验证失败 |
+| 500 | 系统错误 |
 
 ## 请求示例
 
@@ -181,7 +181,7 @@ curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
 
 ```json
 {
-  "code": 0,
+  "code": 200,
   "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",

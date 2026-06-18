@@ -1,14 +1,14 @@
 ---
-title: "快速开始"
-description: "了解从商户入驻到完成第一笔支付的核心流程"
+title: "接入指引"
+description: "从商户入驻到完成第一笔支付的完整接入流程"
 ---
 
 
-本章节帮助你快速了解从入驻 PMP Payment 到完成第一笔支付的完整流程。
+本章节帮助你快速了解从入驻 PayMatrix 到完成第一笔支付的完整流程。
 
 ## 整体架构
 
-PMP Payment 为商户提供以下核心服务：
+PayMatrix 为商户提供以下核心服务：
 
 - **OpenAPI 网关**：商户服务端调用接口的入口，支持 RSA 签名鉴权
 - **托管收银台**：面向消费者的支付页面，支持银行卡、电子钱包等多种支付方式
@@ -32,8 +32,8 @@ PMP Payment 为商户提供以下核心服务：
 | 生产环境 | `https://openapi.example.com/api`         | 正式环境，需审核后开通     |
 
 OpenAPI 接口前缀：
-- 支付接口：`/merchant/payment`
-- 订单查询：`/merchant/order`
+- 支付接口：`/api/merchant/payment`
+- 订单查询：`/api/merchant/order`
 
 ## 第一步：注册商户账号
 
@@ -95,7 +95,8 @@ curl -X POST "https://sandbox-openapi.example.com/api/merchant/payment/create" \
 
 ```json
 {
-  "code": 0,
+  "code": 200,
+  "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
     "pay_url": "https://checkout.example.com/pay/xxx"

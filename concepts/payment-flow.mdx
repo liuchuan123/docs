@@ -1,6 +1,6 @@
 ---
 title: "支付流程"
-description: "PMP Payment 完整支付流程说明"
+description: "PayMatrix 完整支付流程说明"
 ---
 
 
@@ -9,7 +9,7 @@ description: "PMP Payment 完整支付流程说明"
 ## 流程总览
 
 ```
-商户服务端               PMP Payment               消费者
+商户服务端               PayMatrix               消费者
     |                        |                        |
     |-- 1.创建支付订单 ----->|                        |
     |<-- 返回 pay_url -------|                        |
@@ -30,7 +30,7 @@ description: "PMP Payment 完整支付流程说明"
 
 ### 1. 商户创建支付订单
 
-商户服务端调用 `POST /merchant/payment/create` 创建支付订单。
+商户服务端调用 `POST /api/merchant/payment/create` 创建支付订单。
 
 请求参数包含：
 - 商户交易号（唯一标识）
@@ -75,7 +75,7 @@ description: "PMP Payment 完整支付流程说明"
 
 ### 6. 渠道处理 & 异步通知
 
-支付渠道（Stripe、Antom 等）处理支付后，通过异步回调通知 PMP Payment：
+支付渠道（Stripe、Antom 等）处理支付后，通过异步回调通知 PayMatrix：
 - `POST /api/webhook/{channelId}`
 
 ### 7. 商户 Webhook 通知
@@ -87,7 +87,7 @@ description: "PMP Payment 完整支付流程说明"
 
 ### 8. 商户主动查询（可选）
 
-商户也可以调用 `GET /merchant/order/payment/query/{transactionId}` 主动查询支付状态。
+商户也可以调用 `GET /api/merchant/order/payment/query/{transactionId}` 主动查询支付状态。
 
 ## 支付状态流转
 

@@ -1,10 +1,10 @@
 ---
 title: "收银台集成概览"
-description: "PMP Payment 收银台集成方案对比与选择"
+description: "PayMatrix 收银台集成方案对比与选择"
 ---
 
 
-PMP Payment 提供两种收银台集成方案，商户可根据需求选择。
+PayMatrix 提供两种收银台集成方案，商户可根据需求选择。
 
 ## 方案对比
 
@@ -31,7 +31,7 @@ PMP Payment 提供两种收银台集成方案，商户可根据需求选择。
 
 ### 集成步骤
 
-1. 商户服务端调用 `POST /merchant/payment/create` 获取 `pay_url`
+1. 商户服务端调用 `POST /api/merchant/payment/create` 获取 `pay_url`
 2. 将用户浏览器重定向到 `pay_url`
 3. 用户在托管收银台选择支付方式并完成支付
 4. 支付完成后自动跳转回 `redirect_url`

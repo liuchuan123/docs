@@ -1,10 +1,10 @@
 ---
 title: "错误码参考"
-description: "OpenAPI 常见错误码及处理建议"
+description: "OpenAPI 错误码列表及处理建议"
 ---
 
 
-本文列出了 OpenAPI 可能返回的常见错误码及处理建议。
+本文列出了 OpenAPI 可能返回的错误码及处理建议。
 
 ## 通用响应格式
 
@@ -12,74 +12,76 @@ description: "OpenAPI 常见错误码及处理建议"
 
 ```json
 {
-  "code": 40001,
-  "msg": "参数校验失败：amount 必须大于 0",
+  "code": 1001015,
+  "msg": "param.check.failed",
   "data": null
 }
 ```
 
-## 错误码分类
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `code` | Integer | 错误码，`200` 表示成功 |
+| `msg` | String | 错误信息（i18n 消息键） |
+| `data` | Object / null | 错误时通常为 `null` |
 
-### 签名与鉴权错误
+## 签名与鉴权错误
 
-| 错误码 | 错误信息               | 说明                         | 处理建议                     |
-| ------ | ---------------------- | ---------------------------- | ---------------------------- |
-| 40101  | MISSING_HEADER         | 缺少必填的签名请求头         | 检查 4 个签名头是否全部携带   |
-| 40102  | TIMESTAMP_EXPIRED      | 时间戳超出有效窗口（±2分钟） | 校准服务器时间               |
-| 40103  | SIGNATURE_INVALID      | RSA 签名验证失败             | 检查签名算法和私钥是否正确   |
-| 40104  | NONCE_REPLAY           | Nonce 重复使用               | 确保每次请求生成新的随机串   |
-| 40105  | MERCHANT_NOT_FOUND     | 商户 ID 不存在               | 检查 X-Merchant-Id 是否正确  |
-| 40106  | IP_NOT_IN_WHITELIST    | 客户端 IP 不在白名单内       | 将当前服务器 IP 加入白名单   |
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1001015 | `param.check.failed` | 参数校验失败 | 检查请求参数是否符合规范 |
+| 1001016 | `sign.invalid` | RSA 签名验证失败 | 检查签名算法和私钥是否正确 |
+| 1001025 | `auth.merchant.sign.params.missing` | 缺少必填的签名请求头 | 检查 4 个签名头是否全部携带 |
+| 1001026 | `auth.merchant.id.invalid` | 商户 ID 格式无效 | 检查 `X-Merchant-Id` 是否正确 |
+| 1001027 | `auth.merchant.not.found.or.key.missing` | 商户不存在或公钥未配置 | 检查商户 ID 或上传 RSA 公钥 |
+| 1001028 | `auth.timestamp.format.invalid` | 时间戳格式无效 | 确保 `X-Timestamp` 为 Unix 毫秒时间戳 |
+| 1001029 | `auth.timestamp.expired` | 时间戳超出有效窗口（±2 分钟） | 校准服务器时间 |
+| 1001038 | `ip.not.in.whitelist` | 客户端 IP 不在白名单内 | 将当前服务器 IP 加入白名单 |
 
-### 参数校验错误
+## 业务错误
 
-| 错误码 | 错误信息                 | 说明                   |
-| ------ | ------------------------ | ---------------------- |
-| 40001  | PARAM_INVALID            | 请求参数校验失败       |
-| 40002  | AMOUNT_INVALID           | 金额格式错误或超出范围 |
-| 40003  | CURRENCY_NOT_SUPPORTED   | 不支持的币种           |
-| 40004  | PRODUCTS_EMPTY           | 商品列表为空           |
-| 40005  | REDIRECT_URL_INVALID     | 跳转地址格式错误       |
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1001001 | `merchant.is.disabled` | 商户已被禁用 | 联系平台处理 |
+| 1001004 | `order.orderAmount.must.be.greater.than.or.equal.to.0.01` | 订单金额必须大于等于 0.01 | 检查金额参数 |
+| 1001005 | `order.already.exists` | 商户交易号重复 | 使用新的 `merchant_transaction_id` |
+| 1001008 | `order.already.paid.or.canceled` | 订单已支付或已取消 | 检查订单状态，不可重复操作 |
+| 1001009 | `order.not.exists` | 订单不存在 | 检查交易号是否正确 |
+| 1001010 | `order.expired` | 订单已过期 | 订单超时未支付，需重新创建 |
+| 1001014 | `transaction.not.exists` | 交易不存在 | 检查交易 ID 是否正确 |
+| 1001018 | `order.cannot.be.refunded` | 当前订单状态不允许退款 | 检查订单状态是否可退款 |
+| 1001019 | `refund.amount.exceeds.order.amount` | 退款金额超出可退金额 | 调整退款金额 |
+| 1001020 | `order.has.transaction.in.processing` | 订单有交易正在处理中 | 等待当前交易完成后重试 |
+| 1001024 | `transaction.repeat.submit` | 重复提交交易 | 等待上次交易结果 |
+| 1001036 | `pay.in.amount.out.of.range` | 入金额度超出范围 | 检查金额限制 |
+| 1001037 | `pay.in.daily.limit.exceeded` | 入金日限额超限 | 次日重试 |
 
-### 业务错误
+## 系统错误
 
-| 错误码 | 错误信息                   | 说明                           |
-| ------ | -------------------------- | ------------------------------ |
-| 40201  | ORDER_NOT_FOUND            | 订单不存在                     |
-| 40202  | ORDER_DUPLICATE            | 商户交易号重复                 |
-| 40203  | ORDER_EXPIRED              | 订单已过期，无法支付           |
-| 40204  | ORDER_ALREADY_PAID         | 订单已支付，不可重复支付       |
-| 40205  | ORDER_CLOSED               | 订单已关闭                     |
-| 40206  | REFUND_EXCEED_AMOUNT       | 退款金额超出可退金额           |
-| 40207  | REFUND_NOT_ALLOWED         | 当前订单状态不允许退款         |
-| 40208  | REFUND_DUPLICATE           | 退款交易号重复                 |
-| 40209  | REFUND_IN_DISPUTE          | 订单存在争议中，暂不可退款     |
-
-### 系统错误
-
-| 错误码 | 错误信息             | 说明               | 处理建议           |
-| ------ | -------------------- | ------------------ | ------------------ |
-| 50001  | SYSTEM_ERROR         | 系统内部错误       | 稍后重试           |
-| 50002  | CHANNEL_ERROR        | 支付渠道异常       | 稍后重试或切换渠道 |
-| 50003  | SERVICE_UNAVAILABLE  | 服务暂不可用       | 稍后重试           |
-| 50004  | TIMEOUT              | 请求处理超时       | 稍后重试           |
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 400 | `error.bad.request` | 请求格式错误 | 检查请求体格式 |
+| 401 | `error.unauthorized` | 未授权 | 检查认证信息 |
+| 403 | `error.forbidden` | 禁止访问 | 检查权限配置 |
+| 404 | `error.not.found` | 资源不存在 | 检查请求路径 |
+| 500 | `error.internal.server.error` | 系统内部错误 | 稍后重试或联系技术支持 |
+| 900 | `error.repeated.requests` | 重复请求（防重放） | 更换 Nonce 后重试 |
+| 999 | `error.unknown` | 未知错误 | 联系技术支持 |
+| 1000 | `error.busy` | 系统繁忙（Nonce 去重命中） | 更换 Nonce 后重试 |
 
 ## 重试策略
 
-对于可重试的错误（如系统错误、渠道异常），建议采用以下策略：
+对于可重试的错误（如系统错误），建议：
 
-| 类型           | 建议                               |
-| -------------- | ---------------------------------- |
-| 幂等接口       | 相同参数重试（平台保证幂等）       |
-| 非幂等接口     | 先查询状态确认，再决定是否重试     |
-| 重试间隔       | 1s → 3s → 5s（指数退避）          |
-| 最大重试次数   | 3 次                               |
+| 类型 | 建议 |
+| --- | --- |
+| 幂等接口 | 相同参数重试（平台保证幂等） |
+| 非幂等接口 | 先查询状态确认，再决定是否重试 |
+| 重试间隔 | 1s → 3s → 5s（指数退避） |
+| 最大重试次数 | 3 次 |
 
 ## 错误处理最佳实践
 
 1. **记录日志**：记录每次 API 调用的请求和响应，方便排查问题
-2. **根据错误码分类处理**：
-   - 4xx 错误：检查请求参数，修正后重试
-   - 5xx 错误：等待后重试，若持续出现则联系技术支持
-3. **签名错误**：首先检查时间同步和签名算法实现
+2. **签名错误优先排查**：检查时间同步和签名算法实现
+3. **根据错误码分类处理**：4xx/9xx 检查请求参数，5xx 等待后重试
 4. **提供降级方案**：支付异常时不应阻塞用户体验

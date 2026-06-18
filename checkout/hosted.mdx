@@ -1,10 +1,10 @@
 ---
 title: "托管收银台"
-description: "使用 PMP Payment 托管收银台完成支付接入"
+description: "使用 PayMatrix 托管收银台完成支付接入"
 ---
 
 
-托管收银台是 PMP Payment 提供的开箱即用的支付页面，商户只需将用户重定向到该页面即可完成支付。
+托管收银台是 PayMatrix 提供的开箱即用的支付页面，商户只需将用户重定向到该页面即可完成支付。
 
 ## 集成流程
 
@@ -69,7 +69,8 @@ curl -X POST "https://openapi.example.com/api/merchant/payment/create" \
 
 ```json
 {
-  "code": 0,
+  "code": 200,
+  "msg": "success",
   "data": {
     "order_id": "1000126011700000100001",
     "pay_url": "https://checkout.example.com/pay/1000126011700000100001"
