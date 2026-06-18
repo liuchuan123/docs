@@ -3,8 +3,8 @@
   "theme": "willow",
   "name": "PayMatrix",
   "logo": {
-    "dark": { "src": "/logo/pmp_logo.png" },
-    "light": { "src": "/logo/pmp_logo.png" }
+    "dark": "/logo/pmp_logo.png",
+    "light": "/logo/pmp_logo.png"
   },
   "favicon": "/logo/icon.png",
   "modeToggle": true,
