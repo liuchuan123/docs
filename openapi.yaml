@@ -1,7 +1,7 @@
 openapi: "3.0.3"
 info:
   title: "PayMatrix Merchant API"
-  description: "PayMatrix 开放平台商户接口 — 用于服务端对接支付、退款、查询等能力"
+  description: "PayMatrix 开放平台商户接口"
   version: "1.0.0"
 
 servers:
@@ -10,51 +10,25 @@ servers:
   - url: https://api-sbx.paymetrixpay.com/api
     description: 沙盒环境
 
-security:
-  - RSA-Signature: []
-
 components:
-  securitySchemes:
-    RSA-Signature:
-      type: apiKey
-      in: header
-      name: X-Signature
-      description: |
-        RSA SHA256WithRSA 签名（Base64 编码）。
-        签名原文由 `HTTP_METHOD\nREQUEST_URI\nSORTED_QUERY_STRING\nSHA256(BODY)\nTIMESTAMP\nNONCE` 6 行拼接。
-
-  headers:
-    X-Merchant-Id:
-      schema: { type: string }
-      required: true
-      description: 商户 ID
-    X-Timestamp:
-      schema: { type: integer }
-      required: true
-      description: Unix 毫秒时间戳
-    X-Nonce:
-      schema: { type: string }
-      required: true
-      description: 随机字符串（每次请求唯一）
-
   schemas:
     CommonResult:
       type: object
       properties:
-        code: { type: integer, description: "200 表示成功" }
-        msg: { type: string, description: "提示信息" }
+        code: { type: integer }
+        msg: { type: string }
         data: { type: object }
 
     CreatePaymentRequest:
       type: object
       required: [merchant_transaction_id, amount, currency_code, redirect_url, cancel_url, products, customer]
       properties:
-        merchant_transaction_id: { type: string, description: 商户侧订单号（全局唯一） }
-        amount: { type: number, minimum: 0.01, description: 订单金额 }
-        currency_code: { type: string, description: 币种代码，如 USD、EUR、CNY }
-        description: { type: string, description: 订单描述 }
-        redirect_url: { type: string, description: 支付成功后跳转地址 }
-        cancel_url: { type: string, description: 取消支付跳转地址 }
+        merchant_transaction_id: { type: string }
+        amount: { type: number, minimum: 0.01 }
+        currency_code: { type: string }
+        description: { type: string }
+        redirect_url: { type: string }
+        cancel_url: { type: string }
         products:
           type: array
           minItems: 1
@@ -91,8 +65,8 @@ components:
     Address:
       type: object
       properties:
-        country: { type: string, description: 国家代码 }
-        state: { type: string, description: 州/省 }
+        country: { type: string }
+        state: { type: string }
         city: { type: string }
         street: { type: string }
         zip: { type: string }
@@ -105,16 +79,16 @@ components:
             data:
               type: object
               properties:
-                order_id: { type: string, description: 平台订单号 }
-                pay_url: { type: string, description: 收银台地址 }
+                order_id: { type: string }
+                pay_url: { type: string }
 
     RefundRequest:
       type: object
       required: [refund_time, transaction_id, original_transaction_id, currency_code, amount]
       properties:
-        refund_time: { type: string, description: "退款时间，格式 yyyyMMddHHmmss" }
-        transaction_id: { type: string, description: 商户退款单号（唯一） }
-        original_transaction_id: { type: string, description: 原支付商户交易号 }
+        refund_time: { type: string }
+        transaction_id: { type: string }
+        original_transaction_id: { type: string }
         currency_code: { type: string }
         amount: { type: number, minimum: 0.01 }
         reason: { type: string }
@@ -146,7 +120,7 @@ components:
                 merchant_transaction_id: { type: string }
                 payment_currency_code: { type: string }
                 payment_amount: { type: number }
-                payment_status: { type: integer, description: "0-初始化 1-支付中 2-成功 3-失败 4-部分退款 5-已退款 6-已关闭 7-争议中" }
+                payment_status: { type: integer }
                 payment_success_time: { type: string, format: date-time }
                 settlement_currency_code: { type: string }
                 settlement_amount: { type: number }
@@ -159,7 +133,7 @@ components:
             data:
               type: object
               properties:
-                id: { type: string, description: 平台退款单号 }
+                id: { type: string }
                 order_id: { type: string }
                 merchant_id: { type: string }
                 merchant_refund_id: { type: string }
@@ -167,17 +141,17 @@ components:
                 refund_amount: { type: number }
                 refund_currency: { type: string }
                 refund_time: { type: string, format: date-time }
-                status: { type: integer, description: "0-初始化 1-处理中 2-成功 5-已取消 6-失败" }
+                status: { type: integer }
                 reason: { type: string }
                 remark: { type: string }
 
-parameters:
-  transactionId:
-    name: transactionId
-    in: path
-    required: true
-    schema: { type: string }
-    description: 商户交易号
+  parameters:
+    transactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        type: string
 
 paths:
   /merchant/payment/create:
@@ -185,140 +159,65 @@ paths:
       tags: [支付]
       summary: 创建支付订单
       operationId: createPayment
-      parameters:
-        - $ref: "#/components/headers/X-Merchant-Id"
-        - $ref: "#/components/headers/X-Timestamp"
-        - $ref: "#/components/headers/X-Nonce"
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CreatePaymentRequest" }
+            schema:
+              $ref: "#/components/schemas/CreatePaymentRequest"
       responses:
         "200":
           description: 成功
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/CreatePaymentResponse" }
+              schema:
+                $ref: "#/components/schemas/CreatePaymentResponse"
 
   /merchant/payment/refund:
     post:
       tags: [支付]
       summary: 发起退款
       operationId: createRefund
-      parameters:
-        - $ref: "#/components/headers/X-Merchant-Id"
-        - $ref: "#/components/headers/X-Timestamp"
-        - $ref: "#/components/headers/X-Nonce"
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/RefundRequest" }
+            schema:
+              $ref: "#/components/schemas/RefundRequest"
       responses:
         "200":
           description: 成功
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/RefundResponse" }
+              schema:
+                $ref: "#/components/schemas/RefundResponse"
 
-  /merchant/order/payment/query/{transactionId}:
+  "/merchant/order/payment/query/{transactionId}":
     get:
       tags: [订单]
       summary: 查询支付订单
       operationId: queryPayment
       parameters:
-        - $ref: "#/components/headers/X-Merchant-Id"
-        - $ref: "#/components/headers/X-Timestamp"
-        - $ref: "#/components/headers/X-Nonce"
         - $ref: "#/components/parameters/transactionId"
       responses:
         "200":
           description: 成功
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/PaymentQueryResponse" }
+              schema:
+                $ref: "#/components/schemas/PaymentQueryResponse"
 
-  /merchant/order/refund/query/{transactionId}:
+  "/merchant/order/refund/query/{transactionId}":
     get:
       tags: [订单]
       summary: 查询退款订单
       operationId: queryRefund
       parameters:
-        - $ref: "#/components/headers/X-Merchant-Id"
-        - $ref: "#/components/headers/X-Timestamp"
-        - $ref: "#/components/headers/X-Nonce"
         - $ref: "#/components/parameters/transactionId"
       responses:
         "200":
           description: 成功
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/RefundQueryResponse" }
-
-  /web/checkout/payment-methods:
-    get:
-      tags: [收银台]
-      summary: 获取支付方式
-      operationId: getPaymentMethods
-      parameters:
-        - name: orderId
-          in: query
-          required: true
-          schema: { type: string }
-          description: 订单 ID
-      responses:
-        "200":
-          description: 成功
-          content:
-            application/json:
               schema:
-                $ref: "#/components/schemas/CommonResult"
-
-  /web/checkout/init:
-    post:
-      tags: [收银台]
-      summary: 初始化支付
-      operationId: initCheckout
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [orderId, paymentMethodCode]
-              properties:
-                orderId: { type: string, description: 订单 ID }
-                paymentMethodCode: { type: string, description: 支付方式编码 }
-      responses:
-        "200":
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CommonResult"
-
-  /web/payment/submit:
-    post:
-      tags: [收银台]
-      summary: 提交支付
-      operationId: submitPayment
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [orderId, terminal, card]
-              properties:
-                orderId: { type: string }
-                terminal: { type: object }
-                card: { type: object }
-                deviceId: { type: string }
-      responses:
-        "200":
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CommonResult"
+                $ref: "#/components/schemas/RefundQueryResponse"
