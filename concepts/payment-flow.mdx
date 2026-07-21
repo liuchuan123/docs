@@ -8,22 +8,22 @@ description: "PayMatrix 完整支付流程说明"
 
 ## 流程总览
 
-```
-商户服务端               PayMatrix               消费者
-    |                        |                        |
-    |-- 1.创建支付订单 ----->|                        |
-    |<-- 返回 pay_url -------|                        |
-    |                        |                        |
-    |-- 2.重定向消费者 ------------------------------>|
-    |                        |<-- 3.打开收银台 --------|
-    |                        |<-- 4.选择支付方式 ------|
-    |                        |<-- 5.提交支付信息 ------|
-    |                        |                        |
-    |                        |-- 6.平台处理支付 ------>|
-    |                        |<-- 7.返回支付结果 ------|
-    |                        |                        |
-    |<-- 8.Webhook 通知 -----|                        |
-    |<-- 9.主动查询（可选）--|                        |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant M as 商户服务端
+    participant P as PayMatrix
+    participant U as 用户
+
+    M->>P: 创建支付订单
+    P-->>M: 返回 order_id + pay_url
+    M->>U: 重定向到收银台
+    U->>P: 打开收银台并选择支付方式
+    U->>P: 提交支付信息
+    P->>P: 平台处理支付
+    P-->>U: 返回支付结果
+    P->>M: Webhook 通知支付结果
+    M->>P: 主动查询（可选）
 ```
 
 ## 各阶段说明
@@ -87,19 +87,15 @@ description: "PayMatrix 完整支付流程说明"
 
 ## 支付状态流转
 
-```
-INIT（初始化）
-  ↓
-PAYING（支付中）
-  ↓
-  ├── PAY_SUCCESS（支付成功）
-  │     ↓
-  │     ├── PARTIAL_REFUND（部分退款）
-  │     │     ↓
-  │     │     └── REFUNDED（全部退款）
-  │     └── IN_DISPUTE（争议中）
-  ├── PAY_FAIL（支付失败）
-  └── CLOSE（超时关闭）
+```mermaid
+flowchart TD
+    INIT([待支付]) --> PAYING([支付中])
+    PAYING --> SUCCESS([支付成功])
+    PAYING --> FAIL([支付失败])
+    PAYING --> CLOSE([已关闭 / 已过期])
+    SUCCESS --> PARTIAL([部分退款])
+    SUCCESS --> DISPUTE([争议中])
+    PARTIAL --> REFUNDED([已退款])
 ```
 
 ## 超时处理

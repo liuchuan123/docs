@@ -22,35 +22,16 @@ description: "订单状态流转与各状态说明"
 
 ## 状态流转图
 
-```
-                    ┌──────────┐
-                    │   INIT   │
-                    │ (初始化)  │
-                    └────┬─────┘
-                         │
-                    ┌────▼─────┐
-                    │  PAYING  │
-                    │ (支付中)  │
-                    └────┬─────┘
-                         │
-          ┌──────────────┼──────────────┐
-          │              │              │
-     ┌────▼─────┐  ┌────▼─────┐  ┌────▼─────┐
-     │  SUCCESS │  │  FAILED  │  │  CLOSE   │
-     │(支付成功) │  │(支付失败) │  │ (已关闭)  │
-     └────┬─────┘  └──────────┘  └──────────┘
-          │
-     ┌────┴────────┐
-     │             │
-┌────▼────────┐ ┌──▼──────────┐
-│PARTIAL_REFUND│ │ IN_DISPUTE │
-│ (部分退款)   │ │  (争议中)   │
-└────┬────────┘ └─────────────┘
-     │
-┌────▼─────┐
-│ REFUNDED │
-│(全部退款) │
-└──────────┘
+```mermaid
+flowchart TD
+    INIT([INIT 待支付]) --> PAYING([PAYING 支付中])
+    INIT -.超时.-> EXPIRED([EXPIRED 已过期])
+    PAYING --> SUCCESS([PAY_SUCCESS 支付成功])
+    PAYING --> FAIL([PAY_FAIL 支付失败])
+    PAYING --> CLOSE([CLOSE 已关闭])
+    SUCCESS --> PARTIAL([PARTIAL_REFUND 部分退款])
+    SUCCESS --> DISPUTE([IN_DISPUTE 争议中])
+    PARTIAL --> REFUNDED([REFUNDED 已退款])
 ```
 
 ## 状态详解
