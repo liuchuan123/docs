@@ -1,0 +1,281 @@
+---
+title: "签名工具与示例"
+description: "可直接复制的 RSA 签名实现（Java / Node.js / Python），以及端到端调用示例"
+---
+
+签名是接入的最大门槛。本页提供**可直接复制**的完整签名实现，覆盖签名原文构造、请求体规范化与 RSA 签名三步。算法细节见 [签名与鉴权](/integration/authentication)。
+
+<Tip>
+  核心原则：**对你实际发送出去的请求体字符串签名**。下面的 helper 会把你要发送的 JSON body 原样解析后再规范化，确保与平台侧口径一致。
+</Tip>
+
+## 签名要点回顾
+
+- 签名原文 = 6 行用 `\n` 拼接（末行无换行）：`METHOD` → `请求URI(含 /api)` → `排序后QueryString` → `SHA256(规范化Body)` → `时间戳(毫秒)` → `随机串`
+- 请求体规范化：递归拍平为 `key=value`，每层 key 按字母序排序，仅保留标量、丢弃 null，用 `&` 连接后取 **小写十六进制 SHA-256**
+- GET 无 Body 时该行留空；无 QueryString 时该行留空
+- 用商户私钥做 `SHA256withRSA` 签名，结果 Base64 放入 `X-Signature`
+
+## 完整实现
+
+<Tabs>
+  <Tab title="Node.js">
+
+```javascript
+const crypto = require('crypto');
+
+/** 递归拍平：每层 key 排序，仅收集标量，丢弃 null，DFS 顺序 */
+function flatten(node, parts) {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      if (item && typeof item === 'object') flatten(item, parts);
+    }
+  } else if (node && typeof node === 'object') {
+    for (const key of Object.keys(node).sort()) {
+      const v = node[key];
+      if (v === null || v === undefined) continue;
+      if (typeof v === 'object') flatten(v, parts);
+      else parts.push(`${key}=${v}`);
+    }
+  }
+}
+
+/** 请求体 SHA-256（小写十六进制）；空 body 返回空串 */
+function bodyHash(bodyString) {
+  if (!bodyString) return '';
+  const parts = [];
+  flatten(JSON.parse(bodyString), parts);
+  return crypto.createHash('sha256').update(parts.join('&'), 'utf8').digest('hex');
+}
+
+/** 排序 QueryString：key 升序，key=value 用 & 连接（不做 URL 编码） */
+function sortedQuery(params = {}) {
+  return Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join('&');
+}
+
+/** 构造签名原文 */
+function buildCanonical(method, uri, params, bodyString, timestamp, nonce) {
+  return [
+    method.toUpperCase(),
+    uri,
+    sortedQuery(params),
+    bodyHash(bodyString),
+    timestamp,
+    nonce,
+  ].join('\n');
+}
+
+/** SHA256withRSA 签名 → Base64 */
+function sign(canonical, privateKeyPem) {
+  const s = crypto.createSign('RSA-SHA256');
+  s.update(canonical, 'utf8');
+  s.end();
+  return s.sign(privateKeyPem, 'base64');
+}
+
+module.exports = { buildCanonical, sign };
+```
+
+  </Tab>
+  <Tab title="Python">
+
+```python
+import json, hashlib, base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
+
+def _flatten(node, parts):
+    if isinstance(node, list):
+        for item in node:
+            if isinstance(item, (dict, list)):
+                _flatten(item, parts)
+    elif isinstance(node, dict):
+        for key in sorted(node.keys()):
+            v = node[key]
+            if v is None:
+                continue
+            if isinstance(v, (dict, list)):
+                _flatten(v, parts)
+            else:
+                parts.append(f"{key}={_to_str(v)}")
+
+
+def _to_str(v):
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    return str(v)
+
+
+def body_hash(body_string: str) -> str:
+    if not body_string:
+        return ""
+    parts = []
+    _flatten(json.loads(body_string), parts)
+    return hashlib.sha256("&".join(parts).encode("utf-8")).hexdigest()
+
+
+def sorted_query(params: dict) -> str:
+    return "&".join(f"{k}={params[k]}" for k in sorted(params or {}))
+
+
+def build_canonical(method, uri, params, body_string, timestamp, nonce) -> str:
+    return "\n".join([
+        method.upper(), uri, sorted_query(params),
+        body_hash(body_string), str(timestamp), nonce,
+    ])
+
+
+def sign(canonical: str, private_key_pem: bytes) -> str:
+    key = load_pem_private_key(private_key_pem, password=None)
+    sig = key.sign(canonical.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256())
+    return base64.b64encode(sig).decode("utf-8")
+```
+
+  </Tab>
+  <Tab title="Java">
+
+```java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.digest.DigestUtils;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.util.*;
+
+public class PmpSigner {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** 递归拍平：每层 key 排序，仅收集标量，丢弃 null */
+    @SuppressWarnings("unchecked")
+    private static void flatten(Object node, List<String> parts) {
+        if (node instanceof Map<?, ?> map) {
+            new TreeMap<>((Map<String, Object>) map).forEach((k, v) -> {
+                if (v == null) return;
+                if (v instanceof Map || v instanceof List) flatten(v, parts);
+                else parts.add(k + "=" + v);
+            });
+        } else if (node instanceof List<?> list) {
+            for (Object item : list) {
+                if (item instanceof Map || item instanceof List) flatten(item, parts);
+            }
+        }
+    }
+
+    public static String bodyHash(String body) throws Exception {
+        if (body == null || body.isEmpty()) return "";
+        List<String> parts = new ArrayList<>();
+        flatten(MAPPER.readValue(body, Object.class), parts);
+        return DigestUtils.sha256Hex(String.join("&", parts));
+    }
+
+    public static String sortedQuery(Map<String, String> params) {
+        if (params == null || params.isEmpty()) return "";
+        return new TreeMap<>(params).entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .reduce((a, b) -> a + "&" + b).orElse("");
+    }
+
+    public static String buildCanonical(String method, String uri, Map<String, String> params,
+                                        String body, long timestamp, String nonce) throws Exception {
+        return String.join("\n", method.toUpperCase(), uri, sortedQuery(params),
+                bodyHash(body), String.valueOf(timestamp), nonce);
+    }
+
+    public static String sign(String canonical, PrivateKey privateKey) throws Exception {
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initSign(privateKey);
+        sig.update(canonical.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(sig.sign());
+    }
+}
+```
+
+  </Tab>
+</Tabs>
+
+## 端到端调用示例（创建支付）
+
+<Tabs>
+  <Tab title="Node.js">
+
+```javascript
+const fetch = require('node-fetch');
+const crypto = require('crypto');
+const { buildCanonical, sign } = require('./pmp-signer');
+
+const BASE = 'https://openapi.paymatrixpay.com';
+const MERCHANT_ID = '10001';
+const PRIVATE_KEY = require('fs').readFileSync('private_key.pem', 'utf8');
+
+async function createPayment() {
+  const uri = '/api/merchant/payment/create';
+  const body = JSON.stringify({
+    merchant_order_no: 'ORD-20260201-0001',
+    amount: 100.00,
+    currency_code: 'USD',
+    redirect_url: 'https://merchant.com/return',
+    cancel_url: 'https://merchant.com/cancel',
+    products: [{ product_id: 'P1', name: 'Item', price: 100.00, quantity: 1, url: 'https://merchant.com/p/P1' }],
+    shipping: { name: 'Jane Smith', address: { line1: '1 Market St', city: 'SF', state: 'CA', country: 'US', postal_code: '94105' } },
+    customer: { full_name: 'John Doe' },
+  });
+
+  const timestamp = Date.now();               // 毫秒
+  const nonce = crypto.randomUUID();
+  const canonical = buildCanonical('POST', uri, {}, body, timestamp, nonce);
+  const signature = sign(canonical, PRIVATE_KEY);
+
+  const res = await fetch(BASE + uri, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Merchant-Id': MERCHANT_ID,
+      'X-Timestamp': String(timestamp),
+      'X-Nonce': nonce,
+      'X-Signature': signature,
+    },
+    body,
+  });
+  console.log(await res.json());
+}
+
+createPayment();
+```
+
+  </Tab>
+</Tabs>
+
+## 自查：打印签名原文
+
+签名失败时，先把签名原文打印出来逐行核对（注意共 6 行、末行无换行、空行是否保留）：
+
+```
+POST
+/api/merchant/payment/create
+
+8f2c1d3a5b7e9f...        <- SHA256(规范化Body)
+1737004800000
+a3f7b2c1d4e5
+```
+
+<Warning>
+  **数字格式**：签名以你实际发送的 JSON 为准。请如实传递金额（如 `100.00` 会按 `100` 发送与参与签名），不要写形如 `100.0` 的多余尾零字符串，避免两侧规范化结果不一致。
+</Warning>
+
+## 常见签名坑
+
+- 签名 URI **必须含 `/api` 前缀**（如 `/api/merchant/payment/create`），否则验签必失败
+- 时间戳是 **Unix 毫秒**，且与服务器偏差需在 ±2 分钟内
+- 每次请求换新的 `X-Nonce`（如 UUID），5 分钟内不可重复
+- 换行统一用 `\n`（不是 `\r\n`）
+- 若请求体用 `{"data":{...}}` 包裹，签名对**整个外层**做，而非内部
+
+更多见 [常见问题与排错](/appendix/faq)。
+
+## 相关页面
+
+- [签名与鉴权](/integration/authentication) — 算法完整说明
+- [创建支付](/api/payment/create) — 首个签名接口
+- [错误码参考](/appendix/errors) — 签名相关错误码
