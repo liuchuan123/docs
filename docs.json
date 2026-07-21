@@ -19,7 +19,7 @@
   },
   "colors": {
     "primary": "#0052FF",
-    "light": "#F5F8FF",
+    "light": "#4D8BFF",
     "dark": "#0A0D14"
   },
   "navbar": {
@@ -33,16 +33,18 @@
     "tabs": [
       {
         "tab": "帮助文档",
+        "icon": "book-open",
         "groups": [
           {
             "group": "概览",
+            "icon": "compass",
             "pages": [
-              "index",
-              "getting-started/quickstart"
+              "index"
             ]
           },
           {
             "group": "入驻指南",
+            "icon": "clipboard-check",
             "pages": [
               "onboarding/overview",
               "onboarding/registration",
@@ -52,6 +54,7 @@
           },
           {
             "group": "商户门户",
+            "icon": "gauge",
             "pages": [
               "portal/dashboard",
               "portal/orders",
@@ -62,6 +65,7 @@
           },
           {
             "group": "核心概念",
+            "icon": "diagram-project",
             "pages": [
               "concepts/payment-flow",
               "concepts/order-lifecycle",
@@ -73,18 +77,29 @@
       },
       {
         "tab": "商户接入",
+        "icon": "code",
         "groups": [
           {
+            "group": "快速开始",
+            "icon": "rocket",
+            "pages": [
+              "getting-started/quickstart"
+            ]
+          },
+          {
             "group": "接入准备",
+            "icon": "plug",
             "pages": [
               "integration/overview",
               "integration/authentication",
+              "integration/sdk",
               "integration/ip-whitelist",
               "integration/sandbox"
             ]
           },
           {
             "group": "支付 API",
+            "icon": "credit-card",
             "pages": [
               "api/payment/create",
               "api/payment/query",
@@ -93,7 +108,15 @@
             ]
           },
           {
+            "group": "收银台",
+            "icon": "cart-shopping",
+            "pages": [
+              "checkout/hosted"
+            ]
+          },
+          {
             "group": "通知回调",
+            "icon": "webhook",
             "pages": [
               "api/webhook/overview",
               "api/webhook/events",
@@ -101,16 +124,10 @@
             ]
           },
           {
-            "group": "收银台集成",
-            "pages": [
-              "checkout/overview",
-              "checkout/hosted",
-              "checkout/custom"
-            ]
-          },
-          {
             "group": "附录",
+            "icon": "book-bookmark",
             "pages": [
+              "appendix/faq",
               "appendix/errors",
               "appendix/currency"
             ]

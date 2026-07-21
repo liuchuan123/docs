@@ -1,11 +1,10 @@
 ---
 title: "发起退款"
 description: "对已支付订单发起全额或部分退款，支持多次部分退款。"
-api: "POST /api/merchant/payment/refund"
+openapi: "POST /merchant/payment/refund"
 ---
 
-
-对已支付的订单发起全额或部分退款。
+对已支付的订单发起全额或部分退款。退款按**原支付订单号（`order_id`）**定位，一个订单仅有一笔成功支付，据此即可唯一确定被退款的支付。
 
 ## 接口信息
 
@@ -20,9 +19,8 @@ api: "POST /api/merchant/payment/refund"
 
 ```json
 {
-  "refund_time": "20260101120000",
-  "transaction_id": "REF-20260101-001",
-  "original_transaction_id": "ORDER-20260101-001",
+  "merchant_refund_no": "REF-20260201-0001",
+  "order_id": "26020100012345678",
   "currency_code": "USD",
   "amount": 50.00,
   "reason": "用户申请退款",
@@ -32,15 +30,18 @@ api: "POST /api/merchant/payment/refund"
 
 ### 字段说明
 
-| 字段                      | 类型       | 必填 | 说明                                                         |
-| ------------------------- | ---------- | ---- | ------------------------------------------------------------ |
-| `refund_time`             | String     | 是   | 退款时间，格式 `yyyyMMddHHmmss`                             |
-| `transaction_id`          | String     | 是   | 商户退款单号，需唯一                                         |
-| `original_transaction_id` | String     | 是   | 原支付商户交易号（创建支付时的 `merchant_transaction_id`）    |
-| `currency_code`           | String     | 是   | 退款币种，通常与支付币种一致                                 |
-| `amount`                  | BigDecimal | 是   | 退款金额，不能超过原订单可退金额                             |
-| `reason`                  | String     | 否   | 退款原因                                                     |
-| `remark`                  | String     | 否   | 退款备注                                                     |
+| 字段                 | 类型       | 必填 | 说明                                                     |
+| -------------------- | ---------- | ---- | -------------------------------------------------------- |
+| `merchant_refund_no` | String     | 是   | 商户退款单号，商户系统内唯一，1–64 字符                  |
+| `order_id`           | String     | 是   | 原支付订单号（创建支付返回的 `order_id`）                |
+| `currency_code`      | String     | 是   | 退款币种，需与原订单币种一致                             |
+| `amount`             | BigDecimal | 是   | 退款金额，累计退款不可超过原支付金额                     |
+| `reason`             | String     | 否   | 退款原因，最多 512 字符                                  |
+| `remark`             | String     | 否   | 退款备注，最多 512 字符                                  |
+
+<Warning>
+  历史文档中的 `transaction_id`、`original_transaction_id`、`refund_time` 字段已废弃。退款请使用 `merchant_refund_no`（商户退款单号）与 `order_id`（原支付订单号）。
+</Warning>
 
 ## 响应参数
 
@@ -49,8 +50,8 @@ api: "POST /api/merchant/payment/refund"
   "code": 200,
   "msg": "success",
   "data": {
-    "transaction_id": "REF-20260101-001",
-    "order_id": "1000126011700000100001",
+    "refund_id": "26020100098765432",
+    "order_id": "26020100012345678",
     "status": 1,
     "error_msg": null,
     "error_code": null
@@ -58,13 +59,13 @@ api: "POST /api/merchant/payment/refund"
 }
 ```
 
-| 字段             | 类型    | 说明                                           |
-| ---------------- | ------- | ---------------------------------------------- |
-| `transaction_id` | String  | 商户退款单号                                   |
-| `order_id`       | String  | 关联的订单号                                   |
-| `status`         | Integer | 退款交易状态（见下方状态枚举）                 |
-| `error_msg`      | String  | 错误信息，仅失败时有值                         |
-| `error_code`     | String  | 错误码，仅失败时有值                           |
+| 字段         | 类型    | 说明                                           |
+| ------------ | ------- | ---------------------------------------------- |
+| `refund_id`  | String  | 平台退款交易号，**后续查询退款使用此号**       |
+| `order_id`   | String  | 关联的订单号                                   |
+| `status`     | Integer | 退款交易状态（见下方枚举）                     |
+| `error_msg`  | String  | 失败原因，仅失败时有值                         |
+| `error_code` | String  | 错误码，仅失败时有值                           |
 
 ### 退款交易状态
 
@@ -89,9 +90,8 @@ curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/refund" \
   -H "X-Nonce: b4c5d6e7f8" \
   -H "X-Signature: <RSA_SIGNATURE>" \
   -d '{
-    "refund_time": "20260101120000",
-    "transaction_id": "REF-20260101-001",
-    "original_transaction_id": "ORDER-20260101-001",
+    "merchant_refund_no": "REF-20260201-0001",
+    "order_id": "26020100012345678",
     "currency_code": "USD",
     "amount": 50.00,
     "reason": "用户申请退款",
@@ -106,8 +106,9 @@ curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/refund" \
 
 - **部分退款**：退款金额 < 原订单金额，可多次部分退款
 - **全额退款**：累计退款金额 = 原订单金额
-- **不可超额退款**：累计退款金额不能超过原订单金额
-- **已争议订单**：争议中的订单可能无法退款，需先解决争议
+- **不可超额退款**：累计退款金额不能超过原订单金额（按订单报价币种统计）
+- **币种一致**：退款币种需与原订单币种一致
+- **争议订单**：争议中的订单可能无法退款，需先处理争议
 
 ## 退款结果通知
 
@@ -116,15 +117,26 @@ curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/refund" \
 - `order.refund.succeeded` — 退款成功
 - `order.refund.failed` — 退款失败
 
-也可以通过 [退款查询](/api/payment/query-refund) 接口主动查询。
+也可以通过 [退款查询](/api/payment/query-refund) 接口用 `refund_id` 主动查询。
 
 ## 订单状态变化
 
 - 部分退款后订单状态变为 `PARTIAL_REFUND`（4）
 - 全额退款后订单状态变为 `REFUNDED`（5）
 
+## 错误码
+
+| 错误码  | 说明                     |
+| ------- | ------------------------ |
+| 1001018 | 当前订单状态不允许退款   |
+| 1001019 | 退款金额超出可退金额     |
+| 1001024 | 退款单已存在（重复提交） |
+| 1001064 | 退款币种与订单币种不一致 |
+
+完整错误码见 [错误码参考](/appendix/errors)。
+
 ## 相关页面
 
 - [创建支付](/api/payment/create) — 创建可退款的支付订单
-- [退款查询](/api/payment/query-refund) — 查询退款状态
+- [退款查询](/api/payment/query-refund) — 用 `refund_id` 查询退款状态
 - [Webhook 通知](/api/webhook/overview) — 退款结果异步通知

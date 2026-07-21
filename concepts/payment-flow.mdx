@@ -19,8 +19,8 @@ description: "PayMatrix 完整支付流程说明"
     |                        |<-- 4.选择支付方式 ------|
     |                        |<-- 5.提交支付信息 ------|
     |                        |                        |
-    |                        |-- 6.调用渠道处理支付 -->|
-    |                        |<-- 7.渠道返回结果 ------|
+    |                        |-- 6.平台处理支付 ------>|
+    |                        |<-- 7.返回支付结果 ------|
     |                        |                        |
     |<-- 8.Webhook 通知 -----|                        |
     |<-- 9.主动查询（可选）--|                        |
@@ -33,7 +33,7 @@ description: "PayMatrix 完整支付流程说明"
 商户服务端调用 `POST /api/merchant/payment/create` 创建支付订单。
 
 <Info>
-  **请求参数包含：** 商户交易号、订单金额与币种、商品信息、客户信息、跳转地址
+  **请求参数包含：** 商户订单号、订单金额与币种、商品信息、收货与客户信息、跳转地址
 </Info>
 
 平台返回 `order_id`（平台订单号）和 `pay_url`（收银台地址），引导用户支付。
@@ -53,40 +53,37 @@ description: "PayMatrix 完整支付流程说明"
 
 <CardGroup cols={3}>
   <Card title="银行卡" icon="credit-card">
-    Visa / Mastercard / AMEX 等国际卡组织
+    支持主流银行卡
   </Card>
   <Card title="电子钱包" icon="wallet">
-    Alipay / WeChat Pay 等数字钱包
+    支持主流电子钱包
   </Card>
-  <Card title="银行转账" icon="bank">
-    银行直连支付通道
+  <Card title="本地支付" icon="building-columns">
+    支持多种本地支付方式
   </Card>
 </CardGroup>
 
+<Note>
+  具体可用的支付方式由平台按订单币种、地区等自动决定，商户无需关心底层如何处理。
+</Note>
+
 ### 5. 消费者提交支付
 
-消费者填写支付信息（如卡号、有效期、CVV）后提交。
+消费者在收银台按所选支付方式完成支付。平台自动呈现对应的支付界面并采集所需信息，商户无需介入。
 
-收银台根据渠道类型处理：
-- **Stripe Elements**：由 Stripe.js SDK 安全采集卡信息
-- **Antom SDK**：加载 Antom 支付组件
-- **重定向**：跳转到第三方支付页面
+### 6. 平台处理支付
 
-### 6. 渠道处理 & 异步通知
-
-支付渠道（Stripe、Antom 等）处理支付后，通过异步回调通知 PayMatrix：
-- `POST /api/webhook/{channelId}`
+平台完成支付处理后，接收到最终支付结果，并据此更新订单状态。整个处理过程对商户透明。
 
 ### 7. 商户 Webhook 通知
 
 平台确认支付结果后，向商户配置的 Webhook 地址推送事件：
 - `order.payment.succeeded` — 支付成功
 - `order.payment.failed` — 支付失败
-- `order.payment.processing` — 处理中
 
 ### 8. 商户主动查询（可选）
 
-商户也可以调用 `GET /api/merchant/order/payment/query/{transactionId}` 主动查询支付状态。
+商户也可以用平台订单号 `order_id` 调用 `GET /api/merchant/order/payment/query/{orderId}` 主动查询支付状态。
 
 ## 支付状态流转
 
@@ -112,8 +109,8 @@ PAYING（支付中）
 
 ## 幂等性
 
-- 同一 `merchant_transaction_id` 不可重复创建支付
-- 如网络超时未收到响应，建议以相同参数重试（平台保证幂等）
+- 同一 `merchant_order_no` 不可重复创建支付，重复请求返回 `1001005 order.already.exists`
+- 如下单超时未收到响应，请先用 [支付查询](/api/payment/query) 确认订单是否已创建，再决定是否重试，不要直接用同一订单号重试
 
 ## 相关页面
 

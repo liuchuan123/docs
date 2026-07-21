@@ -37,23 +37,44 @@ description: "OpenAPI 错误码列表及处理建议"
 | 1001029 | `auth.timestamp.expired` | 时间戳超出有效窗口（±2 分钟） | 校准服务器时间 |
 | 1001038 | `ip.not.in.whitelist` | 客户端 IP 不在白名单内 | 将当前服务器 IP 加入白名单 |
 
-## 业务错误
+## 下单与订单错误
 
 | 错误码 | 错误信息 | 说明 | 处理建议 |
 | --- | --- | --- | --- |
 | 1001001 | `merchant.is.disabled` | 商户已被禁用 | 联系平台处理 |
-| 1001004 | `order.orderAmount.must.be.greater.than.or.equal.to.0.01` | 订单金额必须大于等于 0.01 | 检查金额参数 |
-| 1001005 | `order.already.exists` | 商户交易号重复 | 使用新的 `merchant_transaction_id` |
+| 1001002 | `merchant.account.is.disabled` | 商户账户已被禁用 | 联系平台处理 |
+| 1001003 | `merchant.account.pay.function.is.disabled` | 账户支付功能已关闭 | 联系平台处理 |
+| 1001005 | `order.already.exists` | 商户订单号重复 | 使用新的 `merchant_order_no` |
 | 1001008 | `order.already.paid.or.canceled` | 订单已支付或已取消 | 检查订单状态，不可重复操作 |
-| 1001009 | `order.not.exists` | 订单不存在 | 检查交易号是否正确 |
+| 1001009 | `order.not.exists` | 订单不存在 | 检查 `order_id` 是否正确 |
 | 1001010 | `order.expired` | 订单已过期 | 订单超时未支付，需重新创建 |
 | 1001014 | `transaction.not.exists` | 交易不存在 | 检查交易 ID 是否正确 |
-| 1001018 | `order.cannot.be.refunded` | 当前订单状态不允许退款 | 检查订单状态是否可退款 |
-| 1001019 | `refund.amount.exceeds.order.amount` | 退款金额超出可退金额 | 调整退款金额 |
 | 1001020 | `order.has.transaction.in.processing` | 订单有交易正在处理中 | 等待当前交易完成后重试 |
-| 1001024 | `transaction.repeat.submit` | 重复提交交易 | 等待上次交易结果 |
+| 1001060 | `order.amount.must.be.positive` | 订单金额必须大于 0 | 检查 `amount` |
+| 1001061 | `product.price.must.be.positive` | 商品单价必须大于 0 | 检查商品 `price` |
+| 1001063 | `amount.scale.exceeds.currency` | 金额小数位数超过币种精度 | 按币种精度传金额 |
+| 1001065 | `currency.not.configured` | 币种未配置 | 使用受支持的币种 |
 | 1001036 | `pay.in.amount.out.of.range` | 入金额度超出范围 | 检查金额限制 |
 | 1001037 | `pay.in.daily.limit.exceeded` | 入金日限额超限 | 次日重试 |
+
+## 退款错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1001018 | `order.cannot.be.refunded` | 当前订单状态不允许退款 | 检查订单状态是否可退款 |
+| 1001019 | `refund.amount.exceeds.order.amount` | 退款金额超出可退金额 | 调整退款金额 |
+| 1001024 | `refund.transaction.already.exists` | 退款单已存在（重复提交） | 使用新的 `merchant_refund_no` |
+| 1001062 | `refund.amount.must.be.positive` | 退款金额必须大于 0 | 检查 `amount` |
+| 1001064 | `refund.currency.mismatch` | 退款币种与订单币种不一致 | 使用与订单一致的币种 |
+| 1001066 | `refund.not.supported` | 该订单不支持退款 | 确认渠道/订单是否可退 |
+| 1001067 | `refund.window.expired` | 退款窗口已过期 | 已超过可退款时间 |
+
+## 风控错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1006002010 | `trade.risk.check.rejected` | 交易被风控拒绝 | 交易无法继续 |
+| 1006002011 | `trade.risk.check.review` | 交易需人工风控审核 | 等待审核结果 |
 
 ## 系统错误
 
@@ -64,9 +85,8 @@ description: "OpenAPI 错误码列表及处理建议"
 | 403 | `error.forbidden` | 禁止访问 | 检查权限配置 |
 | 404 | `error.not.found` | 资源不存在 | 检查请求路径 |
 | 500 | `error.internal.server.error` | 系统内部错误 | 稍后重试或联系技术支持 |
-| 900 | `error.repeated.requests` | 重复请求（防重放） | 更换 Nonce 后重试 |
 | 999 | `error.unknown` | 未知错误 | 联系技术支持 |
-| 1000 | `error.busy` | 系统繁忙（Nonce 去重命中） | 更换 Nonce 后重试 |
+| 1000 | `error.busy` | 重复请求（Nonce 去重命中） | 更换 Nonce 后重试 |
 
 ## 重试策略
 

@@ -1,26 +1,29 @@
 ---
 title: "退款查询"
-description: "根据退款交易号查询退款订单的当前状态与详细信息。"
-api: "GET /api/merchant/order/refund/query/{transactionId}"
+description: "根据平台退款交易号查询退款订单的当前状态与详细信息。"
+openapi: "GET /merchant/order/refund/query/{refundId}"
 ---
 
-
-根据退款交易号查询退款订单的当前状态。
+根据**平台退款交易号（`refund_id`）**查询退款订单的当前状态。
 
 ## 接口信息
 
 | 项目         | 说明                                                |
 | ------------ | --------------------------------------------------- |
 | 请求方式     | `GET`                                               |
-| 路径         | `/api/merchant/order/refund/query/{transactionId}`  |
+| 路径         | `/api/merchant/order/refund/query/{refundId}`       |
 | Content-Type | —（GET 请求无 Body）                                |
 | 鉴权方式     | RSA 签名                                            |
 
 ## 路径参数
 
-| 参数            | 类型   | 必填 | 说明                       |
-| --------------- | ------ | ---- | -------------------------- |
-| `transactionId` | String | 是   | 商户退款交易号（发起退款时传入的 `transaction_id`） |
+| 参数       | 类型   | 必填 | 说明                                             |
+| ---------- | ------ | ---- | ------------------------------------------------ |
+| `refundId` | String | 是   | 平台退款交易号（发起退款接口返回的 `refund_id`） |
+
+<Note>
+  查询使用的是**平台退款交易号 `refund_id`**，不是商户退款单号 `merchant_refund_no`。
+</Note>
 
 ## 响应参数
 
@@ -29,14 +32,12 @@ api: "GET /api/merchant/order/refund/query/{transactionId}"
   "code": 200,
   "msg": "success",
   "data": {
-    "id": "1000126011700000200001",
-    "order_id": "1000126011700000100001",
+    "refund_id": "26020100098765432",
+    "order_id": "26020100012345678",
     "merchant_id": "10001",
-    "merchant_refund_id": "REF-20260101-001",
-    "original_transaction_id": "ORDER-20260101-001",
+    "merchant_refund_no": "REF-20260201-0001",
     "refund_amount": 50.00,
     "refund_currency": "USD",
-    "refund_time": "2026-01-01T12:00:00",
     "status": 2,
     "reason": "用户申请退款",
     "remark": "商品有瑕疵"
@@ -46,21 +47,19 @@ api: "GET /api/merchant/order/refund/query/{transactionId}"
 
 ### 字段说明
 
-| 字段                      | 类型       | 说明               |
-| ------------------------- | ---------- | ------------------ |
-| `id`                      | String     | 平台退款单号       |
-| `order_id`                | String     | 关联的订单号       |
-| `merchant_id`             | String     | 商户 ID            |
-| `merchant_refund_id`      | String     | 商户退款交易号     |
-| `original_transaction_id` | String     | 原支付商户交易号   |
-| `refund_amount`           | BigDecimal | 退款金额           |
-| `refund_currency`         | String     | 退款币种           |
-| `refund_time`             | DateTime   | 退款时间（ISO 8601）|
-| `status`                  | Integer    | 退款状态           |
-| `reason`                  | String     | 退款原因           |
-| `remark`                  | String     | 退款备注           |
+| 字段                 | 类型       | 说明               |
+| -------------------- | ---------- | ------------------ |
+| `refund_id`          | String     | 平台退款交易号     |
+| `order_id`           | String     | 关联的订单号       |
+| `merchant_id`        | String     | 商户 ID            |
+| `merchant_refund_no` | String     | 商户退款单号       |
+| `refund_amount`      | BigDecimal | 退款金额           |
+| `refund_currency`    | String     | 退款币种           |
+| `status`             | Integer    | 退款交易状态       |
+| `reason`             | String     | 退款原因           |
+| `remark`             | String     | 退款备注           |
 
-### 退款状态枚举
+### 退款交易状态
 
 | 状态码 | 状态   | 说明         |
 | ------ | ------ | ------------ |
@@ -76,7 +75,7 @@ api: "GET /api/merchant/order/refund/query/{transactionId}"
   <Tab title="cURL">
 
 ```bash
-curl -X GET "https://openapi.paymatrixpay.com/api/merchant/order/refund/query/REF-20260101-001" \
+curl -X GET "https://openapi.paymatrixpay.com/api/merchant/order/refund/query/26020100098765432" \
   -H "X-Merchant-Id: 10001" \
   -H "X-Timestamp: 1737008400000" \
   -H "X-Nonce: b4c5d6e7f8" \

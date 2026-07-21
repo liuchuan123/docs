@@ -220,7 +220,7 @@ curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
   -H "X-Nonce: a3f7b2c1d4e5" \
   -H "X-Signature: dGhpcyBpcyBhbiBleGFtcGxl..." \
   -d '{
-    "merchant_transaction_id": "TXN20260101001",
+    "merchant_order_no": "ORD-20260201-0001",
     "amount": 100.00,
     "currency_code": "USD",
     "redirect_url": "https://merchant.com/payment/return",
@@ -230,9 +230,20 @@ curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
         "product_id": "PROD001",
         "name": "Product Name",
         "price": 100.00,
-        "quantity": 1
+        "quantity": 1,
+        "url": "https://merchant.com/product/PROD001"
       }
     ],
+    "shipping": {
+      "name": "Jane Smith",
+      "address": {
+        "line1": "1 Market Street",
+        "city": "San Francisco",
+        "state": "CA",
+        "country": "US",
+        "postal_code": "94105"
+      }
+    },
     "customer": {
       "full_name": "John Doe"
     }

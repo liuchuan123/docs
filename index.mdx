@@ -1,90 +1,67 @@
 ---
 title: 概览
-description: PayMatrix 开放平台商户接入指南
+description: PayMatrix 开放平台使用与接入指南
 ---
 
+PayMatrix 是一站式收款平台，帮助商户接受、管理并结算多币种支付。你只需接入一次，即可获得完整的收银、对账、结算与风控能力——底层支付处理由平台统一完成，对你透明。
 
-欢迎使用 PayMatrix 开放平台。本文档面向**商户服务端开发者**，说明如何通过 OpenAPI 完成支付接入。
+## 核心能力
 
-<Note>
-  第一次接入？建议按顺序阅读下方的「标准接入流程」，配合 [接入指引](/getting-started/quickstart) 按步骤操作。
-</Note>
+<CardGroup cols={2}>
+  <Card title="托管收银台" icon="cart-shopping">
+    平台托管的收银页面，商户跳转即可收款，无需处理卡信息与合规
+  </Card>
+  <Card title="OpenAPI" icon="server">
+    创建支付、退款、查询等服务端接口，RSA 签名鉴权
+  </Card>
+  <Card title="Webhook 通知" icon="webhook">
+    支付、退款、争议等事件实时推送到你的服务端
+  </Card>
+  <Card title="结算与对账" icon="scale-balanced">
+    多币种账户、结算单与提现，配套对账能力
+  </Card>
+</CardGroup>
 
-## 接入前准备
+## 文档怎么读
 
-在商户门户完成以下配置：
+本套文档分为两部分，按你的角色选择：
 
-| 配置项 | 说明 |
-| --- | --- |
-| 商户 ID | 平台分配，请求头 `X-Merchant-Id` 使用 |
-| RSA 公钥 | 商户生成密钥对，将公钥上传至门户 |
-| IP 白名单 | 可选，限制只有指定出口 IP 可调用 API |
-| Webhook | 配置回调 URL 与 Secret，接收支付结果通知 |
+<CardGroup cols={2}>
+  <Card title="帮助文档" icon="book-open" href="/onboarding/overview">
+    **面向商户业务 / 运营。** 介绍入驻、商户门户使用，以及支付、结算等业务概念。不涉及代码。
+  </Card>
+  <Card title="商户接入" icon="code" href="/getting-started/quickstart">
+    **面向开发者。** 从零跑通第一笔支付：签名鉴权、支付 API、收银台跳转、Webhook 接收。
+  </Card>
+</CardGroup>
 
-## 环境与地址
+| 你想…                         | 去这里                                        |
+| ----------------------------- | --------------------------------------------- |
+| 了解产品、注册入驻            | [入驻指南](/onboarding/overview)              |
+| 在门户查订单、退款、结算      | [商户门户](/portal/dashboard)                 |
+| 理解支付流程与结算规则        | [核心概念](/concepts/payment-flow)            |
+| 用 API 对接，跑通第一笔支付   | [快速开始](/getting-started/quickstart)       |
+| 查接口参数与错误码            | [支付 API](/api/payment/create)               |
 
-| 环境 | API 基础地址 |
-| --- | --- |
-| 生产 | `https://openapi.paymatrixpay.com/api` |
-| 沙盒 | `https://api-sbx.paymetrixpay.com/api` |
-
-<Tip>
-  先在沙盒环境完成联调，确认无误后再切换到生产环境。沙盒**不产生真实资金流动**，可放心测试。
-</Tip>
-
-## 标准接入流程
+## 一笔支付是怎么走的
 
 ```mermaid
 sequenceDiagram
     participant M as 商户服务端
-    participant P as PayMatrix 平台
+    participant P as PayMatrix
     participant U as 用户
 
-    M->>P: 1. 创建支付（签名请求）
-    P-->>M: 返回 pay_url
+    M->>P: 1. 创建支付
+    P-->>M: 返回 order_id + pay_url
     M->>U: 2. 跳转收银台
     U->>P: 3. 完成支付
-    P->>M: 4. Webhook 通知支付结果
-    M->>P: 5. 查询接口核对（可选）
+    P->>M: 4. Webhook 通知结果
+    M->>P: 5. 查询核对（可选）
 ```
 
-1. **创建支付** — 调用 `POST /api/merchant/payment/create`，获取 `pay_url`
-2. **引导支付** — 将用户跳转至 `pay_url` 完成付款
-3. **接收通知** — 监听 Webhook 事件（如 `order.payment.succeeded`），更新订单状态
-4. **主动查询** — 必要时调用 `GET /api/merchant/order/payment/query/{transactionId}` 做对账或补单
-5. **发起退款** — 调用 `POST /api/merchant/payment/refund`
+1. 商户服务端 **创建支付**，拿到 `order_id` 与 `pay_url`
+2. 把用户 **跳转到 `pay_url`** 完成付款
+3. 平台通过 **Webhook** 通知支付结果（权威来源）
+4. 需要时用 `order_id` **主动查询** 对账；如需退款按 `order_id` 发起
 
-## 响应格式
-
-所有 API 返回统一 JSON 结构：
-
-```json
-{
-  "code": 200,
-  "data": { },
-  "msg": ""
-}
-```
-
-| 字段 | 说明 |
-| --- | --- |
-| `code` | `200` 表示成功，其他值为错误码 |
-| `data` | 业务数据，失败时可能为 `null` |
-| `msg` | 错误描述，成功时通常为空 |
-
-## 下一步
-
-<CardGroup cols={2}>
-  <Card title="签名与鉴权" icon="key" href="/integration/authentication">
-    了解 RSA 签名规则与请求头要求
-  </Card>
-  <Card title="创建支付" icon="credit-card" href="/api/payment/create">
-    查看创建支付接口参数与示例
-  </Card>
-  <Card title="Webhook 回调" icon="webhook" href="/api/webhook/overview">
-    配置并验签平台推送的事件通知
-  </Card>
-  <Card title="订单查询" icon="magnifying-glass" href="/api/payment/query">
-    主动查询支付与退款状态
-  </Card>
-</CardGroup>
+准备好开始了吗？前往 [快速开始](/getting-started/quickstart)。

@@ -1,32 +1,40 @@
 ---
 title: "开发设置"
-description: "管理 API 密钥、RSA 公钥、Webhook 配置等开发者相关设置"
+description: "管理 RSA 公钥、IP 白名单、Webhook 配置等开发者相关设置"
 ---
 
 
-「开发设置」是商户开发者管理 API 密钥、安全配置和 Webhook 的地方。
+「开发设置」是商户开发者管理接口凭据、安全配置和 Webhook 的地方。
 
 <CardGroup cols={3}>
-  <Card title="API 密钥" icon="key" href="#api-密钥管理">
-    RSA 密钥对管理与商户 ID
+  <Card title="接口凭据" icon="key" href="#接口凭据">
+    上传 RSA 公钥、查看 apiKey 与商户 ID
   </Card>
   <Card title="安全设置" icon="shield-check" href="#安全设置">
     IP 白名单与登录安全
   </Card>
   <Card title="Webhook" icon="webhook" href="#webhook-管理">
-    回调地址与事件订阅
+    回调地址、事件订阅与投递记录
   </Card>
 </CardGroup>
 
-## API 密钥管理
+## 接口凭据
 
-### RSA 密钥对
+### 上传 RSA 公钥
 
-OpenAPI 使用 RSA 签名进行鉴权，你需要：
+OpenAPI 使用 RSA 签名进行鉴权。鉴权凭据由你上传的 RSA 公钥建立，操作步骤：
 
-1. **生成密钥对**：使用 OpenSSL 生成 2048 位 RSA 密钥对
-2. **上传公钥**：将公钥上传至平台
-3. **保管私钥**：私钥仅保存在你的服务器中，用于对请求签名
+<Steps>
+  <Step title="生成密钥对">
+    使用 OpenSSL 生成 2048 位 RSA 密钥对。
+  </Step>
+  <Step title="上传公钥">
+    在门户上传公钥文件内容。
+  </Step>
+  <Step title="保管私钥">
+    私钥仅保存在你的服务器中，用于对请求签名，切勿泄露。
+  </Step>
+</Steps>
 
 ```bash
 # 生成 RSA 私钥（2048 位）
@@ -36,21 +44,15 @@ openssl genrsa -out private_key.pem 2048
 openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
-### 查看商户 ID
+如需更换密钥，在门户重新上传新的 RSA 公钥即可。签名算法详见 [签名与鉴权](/integration/authentication)。
 
-上传公钥后，页面顶部会显示你的 **商户 ID（merchantId）**。所有 API 调用都需要在 `X-Merchant-Id` 请求头中携带该 ID。
+### apiKey / secretKey 与商户 ID
 
-### 密钥轮换
+平台会展示你的 **apiKey** 与 **secretKey** 以及商户 ID（merchantId）。
 
-如需更换密钥：
-
-1. 在页面中点击「添加新公钥」
-2. 上传新的公钥文件
-3. 确认后新公钥立即生效（旧的签名请求仍会在 1 小时内兼容）
-
-<Tip>
-  建议定期轮换密钥以增强安全性。更换前请确保新私钥已在你的服务器中部署。
-</Tip>
+<Warning>
+  门户仅支持上传/更新 RSA 公钥。apiKey 与 secretKey 可查看但**不能在门户自助轮换或重置**。如确需重置，请联系平台处理。
+</Warning>
 
 ## 安全设置
 
@@ -58,38 +60,47 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 
 设置允许调用 OpenAPI 的服务器 IP 地址列表，留空表示不限制。
 
-多个 IP 用英文逗号分隔，例如：`192.0.2.1, 198.51.100.42`
+- 多个 IP 用英文逗号分隔，例如：`192.0.2.1, 198.51.100.42`
+- 仅支持精确的 IPv4 地址，**不支持 CIDR 网段**
 
 详见 [IP 白名单](/integration/ip-whitelist)。
 
 ### 登录安全
 
 - 支持邮箱 + 密码登录
-- 支持多因素认证（MFA）：TOTP 动态码或邮箱验证码
+- 支持多因素认证（MFA）：TOTP 动态码或登录邮箱验证码
 - 支持查看登录历史
+
+更多账户安全设置见 [账户管理](/portal/account)。
 
 ## Webhook 管理
 
-配置 Webhook 回调地址和订阅事件。
+Webhook 用于接收支付状态变更等事件的实时通知。你可在此增删改 Webhook、测试并查看投递记录。
 
 ### 添加 Webhook
 
-1. 填写回调 URL（必须支持 HTTPS）
-2. 设置签名密钥（Secret），可点击自动生成
-3. 勾选需要订阅的事件类型
-4. 保存
+<Steps>
+  <Step title="填写回调 URL">
+    填写你的回调地址（必须支持 HTTPS）。
+  </Step>
+  <Step title="设置签名密钥">
+    设置用于验签的签名密钥（Secret），可由系统自动生成。
+  </Step>
+  <Step title="订阅事件">
+    勾选需要订阅的事件类型并保存。
+  </Step>
+</Steps>
 
 ### 管理已有 Webhook
 
-- **编辑**：修改 URL、密钥或事件订阅
-- **测试发送**：向指定事件类型发送测试通知
-- **启用/停用**：临时关闭某个 Webhook 推送
-- **查看投递记录**：查看历史投递状态和审计日志
+- **编辑 / 删除**：修改 URL、密钥或事件订阅，或删除该 Webhook
+- **测试发送**：向端点发送测试通知，验证可达性
+- **重新生成签名密钥**：轮换该 Webhook 的验签密钥
+- **投递记录与重试**：查看历史投递状态，对失败的投递发起重试
+- **审计日志**：查看该 Webhook 的变更与操作记录
 
-详见 [Webhook 配置](/api/webhook/overview)。
+详见 [Webhook 概览](/api/webhook/overview)。
 
-### 建议
-
-- 至少配置一个 Webhook 来接收支付成功事件
-- 可以配置多个 Webhook 地址用于不同环境（如开发、生产）
-- 关键事件（支付成功、退款成功、争议创建）建议全部订阅
+<Tip>
+  至少配置一个 Webhook 来接收支付成功事件。关键事件（支付成功、退款成功、争议创建）建议全部订阅。
+</Tip>
