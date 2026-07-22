@@ -11,12 +11,12 @@ description: "Webhook HMAC-SHA256 签名机制与商户验签指南"
 ### 签名头格式
 
 ```
-X-Pmp-Signature: t={timestamp},v1={hmac_hex}
+X-Signature: t={timestamp},v1={hmac_hex}
 ```
 
 示例：
 ```
-X-Pmp-Signature: t=1749081600,v1=a1b2c3d4e5f6...
+X-Signature: t=1749081600,v1=a1b2c3d4e5f6...
 ```
 
 ### 签名串构造
@@ -26,7 +26,7 @@ payload = timestamp + "." + rawBody
 ```
 
 其中：
-- `timestamp`：Unix 秒级时间戳，来自 `X-Pmp-Timestamp` 头
+- `timestamp`：Unix 秒级时间戳，来自 `X-Timestamp` 头
 - `rawBody`：HTTP 请求体的原始字符串（未解析的 JSON）
 
 ### 签名计算
@@ -43,10 +43,10 @@ hmac_hex = HMAC-SHA256(secret, payload)
 
 ### 1. 解析签名头
 
-从 `X-Pmp-Signature` 中提取 `t` 和 `v1`：
+从 `X-Signature` 中提取 `t` 和 `v1`：
 
 ```
-X-Pmp-Signature: t=1749081600,v1=a1b2c3d4e5f6...
+X-Signature: t=1749081600,v1=a1b2c3d4e5f6...
 
 提取结果：
   timestamp = 1749081600
@@ -102,7 +102,7 @@ const crypto = require('crypto');
 
 function verifyWebhook(headers, rawBody, secret) {
     // 1. 解析签名头
-    const sigHeader = headers['x-pmp-signature'];
+    const sigHeader = headers['x-signature'];
     const match = sigHeader.match(/t=(\d+),v1=([a-f0-9]+)/);
     if (!match) {
         return false; // 格式错误
@@ -244,7 +244,7 @@ def verify_webhook(signature_header: str, raw_body: str, secret: str) -> bool:
 
 1. 确认使用的是**原始请求体**字符串（不是 JSON 解析后重新序列化的）
 2. 确认 Secret 与商户门户配置的一致
-3. 确认 `X-Pmp-Signature` 头格式：`t=xxx,v1=xxx`
+3. 确认 `X-Signature` 头格式：`t=xxx,v1=xxx`
 4. 确认签名串为 `timestamp.rawBody`，中间是点号 `.`
 
 ### 如何处理重复通知？
