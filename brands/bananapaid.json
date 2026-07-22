@@ -1,0 +1,12 @@
+{
+  "id": "bananapaid",
+  "logoDir": "assets/logo/bananapaid",
+  "deployBranch": "deploy/bananapaid",
+  "tokens": {
+    "BRAND": "Banana Paid",
+    "DOMAIN_BASE": "bananapaid.com",
+    "COLOR_PRIMARY": "#0052FF",
+    "COLOR_LIGHT": "#4D8BFF",
+    "COLOR_DARK": "#0A0D14"
+  }
+}

@@ -1,0 +1,56 @@
+---
+title: "账户概览"
+description: "商户门户仪表盘功能介绍"
+---
+
+
+商户门户（<a href="https://merchant.{{DOMAIN_BASE}}">merchant.{{DOMAIN_BASE}}</a>）的 Dashboard 是登录后的首页，提供核心业务的概览视图，帮助你快速掌握交易与资金动态。
+
+<CardGroup cols={2}>
+  <Card title="交易管理" icon="list-bullet" href="/portal/orders">
+    查看订单、发起退款、跟踪争议
+  </Card>
+  <Card title="结算管理" icon="bank" href="/portal/settlements">
+    查看结算单、结算明细与提现
+  </Card>
+  <Card title="开发设置" icon="cog" href="/portal/developer-settings">
+    上传 RSA 公钥、配置 IP 白名单与 Webhook
+  </Card>
+  <Card title="账户管理" icon="user" href="/portal/account">
+    商户资料、余额、安全与团队
+  </Card>
+</CardGroup>
+
+## 核心指标卡片
+
+Dashboard 顶部以卡片形式展示当日核心指标：
+
+| 指标 | 说明 |
+| ---- | ---- |
+| 今日交易笔数 | 当日成功支付的交易数量 |
+| 今日交易金额 | 当日成功支付的交易总额 |
+| 成功率 | 当日支付成功率 |
+| 待结算 | 当前尚未结算的总金额 |
+
+## 交易趋势图
+
+Dashboard 以图表展示近期的交易趋势，便于你观察业务波动，及时发现异常。
+
+## 最近交易
+
+展示最近的交易记录，包含交易时间、订单 ID、交易金额、支付方式与交易状态。点击任一条记录可进入 [交易详情](/portal/orders)。
+
+## 账户余额
+
+Dashboard 展示商户账户的四种余额：
+
+| 余额类型 | 说明 |
+| -------- | ---- |
+| 待结算 | 已成功交易但尚未到达结算周期的金额 |
+| 可提现 | 已完成结算、可申请提现的可用余额 |
+| 冻结 | 因争议等原因暂时冻结的金额 |
+| 保证金 | 预留的风险保证金 |
+
+<Tip>
+  余额明细与资金流转说明可在 [结算管理](/portal/settlements) 中进一步查看，结算周期与规则见 [结算体系](/concepts/settlement)。
+</Tip>

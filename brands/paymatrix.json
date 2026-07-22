@@ -1,0 +1,12 @@
+{
+  "id": "paymatrix",
+  "logoDir": "assets/logo/paymatrix",
+  "deployBranch": "deploy/paymatrix",
+  "tokens": {
+    "BRAND": "PayMatrix",
+    "DOMAIN_BASE": "paymatrixpay.com",
+    "COLOR_PRIMARY": "#0052FF",
+    "COLOR_LIGHT": "#4D8BFF",
+    "COLOR_DARK": "#0A0D14"
+  }
+}

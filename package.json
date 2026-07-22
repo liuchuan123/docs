@@ -1,0 +1,10 @@
+{
+  "name": "paymatrix-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:paymatrix": "node scripts/build.mjs paymatrix",
+    "build:bananapaid": "node scripts/build.mjs bananapaid"
+  }
+}

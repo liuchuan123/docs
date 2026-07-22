@@ -1,0 +1,331 @@
+openapi: "3.0.3"
+info:
+  title: "{{BRAND}} Merchant API"
+  description: "{{BRAND}} 开放平台商户接口。所有接口采用 RSA 签名鉴权，请求与响应统一为 JSON。"
+  version: "1.0.0"
+
+servers:
+  - url: https://openapi.{{DOMAIN_BASE}}
+    description: 生产环境
+
+tags:
+  - name: 支付
+    description: 创建支付、发起退款
+  - name: 订单
+    description: 支付订单与退款订单查询
+
+components:
+  securitySchemes:
+    MerchantId:
+      type: apiKey
+      in: header
+      name: X-Merchant-Id
+    Timestamp:
+      type: apiKey
+      in: header
+      name: X-Timestamp
+    Nonce:
+      type: apiKey
+      in: header
+      name: X-Nonce
+    Signature:
+      type: apiKey
+      in: header
+      name: X-Signature
+
+  schemas:
+    CommonResult:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，200 表示成功
+          example: 200
+        msg:
+          type: string
+          description: 提示信息
+          example: success
+        data:
+          type: object
+          nullable: true
+
+    Address:
+      type: object
+      required: [line1, city, state, country, postal_code]
+      properties:
+        line1: { type: string, maxLength: 128, description: 地址行 1 }
+        line2: { type: string, maxLength: 128, description: 地址行 2 }
+        city: { type: string, maxLength: 64 }
+        state: { type: string, maxLength: 64, description: 州/省 }
+        country: { type: string, pattern: "^[A-Z]{2}$", description: "ISO 3166-1 alpha-2 国家代码，如 US、HK、CN" }
+        postal_code: { type: string, maxLength: 16, description: 邮编 }
+
+    Product:
+      type: object
+      required: [product_id, name, price, quantity, url]
+      properties:
+        product_id: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 256 }
+        description: { type: string, maxLength: 128 }
+        price: { type: number, minimum: 0.01, description: 商品单价，> 0 }
+        quantity: { type: integer, minimum: 1, maximum: 999999 }
+        category: { type: string, maxLength: 64 }
+        sku: { type: string, maxLength: 64 }
+        url: { type: string, format: uri, maxLength: 512, description: 商品详情链接 }
+
+    Shipping:
+      type: object
+      required: [name, address]
+      properties:
+        name: { type: string, maxLength: 128, description: "收货人姓名（名 + 空格 + 姓）" }
+        address: { $ref: "#/components/schemas/Address" }
+
+    Customer:
+      type: object
+      required: [full_name]
+      properties:
+        first_name: { type: string, maxLength: 64 }
+        last_name: { type: string, maxLength: 64 }
+        full_name: { type: string, maxLength: 128 }
+        address: { $ref: "#/components/schemas/Address" }
+
+    CreatePaymentRequest:
+      type: object
+      required: [merchant_order_no, amount, currency_code, products, shipping, customer]
+      properties:
+        merchant_order_no:
+          type: string
+          maxLength: 64
+          description: 商户订单号，商户系统内唯一
+          example: ORD-20260201-0001
+        amount:
+          type: number
+          minimum: 0.01
+          description: 订单金额，> 0，小数精度按币种配置校验
+          example: 100.00
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: 订单币种代码，ISO 4217，如 USD
+          example: USD
+        description:
+          type: string
+          maxLength: 256
+          description: 交易描述，展示在收银台
+        redirect_url:
+          type: string
+          format: uri
+          maxLength: 512
+          description: 支付成功后用户回跳地址（信用卡类支付必填）
+        cancel_url:
+          type: string
+          format: uri
+          maxLength: 512
+          description: 用户取消支付时的回跳地址
+        products:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/Product" }
+        shipping: { $ref: "#/components/schemas/Shipping" }
+        customer: { $ref: "#/components/schemas/Customer" }
+
+    CreatePaymentResponse:
+      allOf:
+        - $ref: "#/components/schemas/CommonResult"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                  description: 平台订单号（17 位），后续查询、退款均使用此号
+                  example: "26020100012345678"
+                pay_url:
+                  type: string
+                  description: 收银台地址，引导用户跳转完成支付
+                  example: https://cashier.{{DOMAIN_BASE}}/checkout?orderId=26020100012345678
+
+    RefundRequest:
+      type: object
+      required: [merchant_refund_no, order_id, currency_code, amount]
+      properties:
+        merchant_refund_no:
+          type: string
+          maxLength: 64
+          description: 商户退款单号，商户系统内唯一
+          example: REF-20260201-0001
+        order_id:
+          type: string
+          maxLength: 64
+          description: 原支付订单号（创建支付返回的 order_id）
+          example: "26020100012345678"
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: 退款币种，需与原订单币种一致
+          example: USD
+        amount:
+          type: number
+          minimum: 0.01
+          description: 退款金额，累计不可超过原支付金额
+          example: 50.00
+        reason: { type: string, maxLength: 512, description: 退款原因 }
+        remark: { type: string, maxLength: 512, description: 退款备注 }
+
+    RefundResponse:
+      allOf:
+        - $ref: "#/components/schemas/CommonResult"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                refund_id:
+                  type: string
+                  description: 平台退款交易号，后续查询退款使用此号
+                  example: "26020100098765432"
+                order_id: { type: string, example: "26020100012345678" }
+                status:
+                  type: integer
+                  description: 退款交易状态（0=初始化,1=处理中,2=成功,5=已取消,6=失败）
+                  example: 1
+                error_msg: { type: string, nullable: true, description: 失败原因，仅失败时有值 }
+                error_code: { type: string, nullable: true, description: 错误码，仅失败时有值 }
+
+    PaymentQueryResponse:
+      allOf:
+        - $ref: "#/components/schemas/CommonResult"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                platform_order_id: { type: string, description: 平台订单号, example: "26020100012345678" }
+                merchant_order_no: { type: string, description: 商户订单号, example: ORD-20260201-0001 }
+                payment_currency_code: { type: string, example: USD }
+                payment_amount: { type: number, example: 100.00 }
+                payment_status:
+                  type: integer
+                  description: 订单维度支付状态（0=待支付,1=支付中,2=支付成功,3=支付失败,4=部分退款,5=已退款,6=已关闭,7=争议中,8=已过期）
+                  example: 2
+                payment_success_time: { type: string, description: "支付成功时间，格式 yyyy-MM-dd HH:mm:ss", example: "2026-02-01 12:00:00" }
+                settlement_currency_code: { type: string, example: USD }
+                settlement_amount: { type: number, description: 结算金额（扣除平台手续费后）, example: 98.00 }
+
+    RefundQueryResponse:
+      allOf:
+        - $ref: "#/components/schemas/CommonResult"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                refund_id: { type: string, description: 平台退款交易号, example: "26020100098765432" }
+                order_id: { type: string, description: 关联订单号, example: "26020100012345678" }
+                merchant_id: { type: string, example: "10001" }
+                merchant_refund_no: { type: string, description: 商户退款单号, example: REF-20260201-0001 }
+                refund_amount: { type: number, example: 50.00 }
+                refund_currency: { type: string, example: USD }
+                status:
+                  type: integer
+                  description: 退款交易状态（0=初始化,1=处理中,2=成功,5=已取消,6=失败）
+                  example: 2
+                reason: { type: string }
+                remark: { type: string }
+
+  parameters:
+    orderId:
+      name: orderId
+      in: path
+      required: true
+      description: 平台订单号（创建支付返回的 order_id）
+      schema:
+        type: string
+      example: "26020100012345678"
+    refundId:
+      name: refundId
+      in: path
+      required: true
+      description: 平台退款交易号（发起退款返回的 refund_id）
+      schema:
+        type: string
+      example: "26020100098765432"
+
+security:
+  - MerchantId: []
+    Timestamp: []
+    Nonce: []
+    Signature: []
+
+paths:
+  /api/merchant/payment/create:
+    post:
+      tags: [支付]
+      summary: 创建支付订单
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePaymentResponse"
+
+  /api/merchant/payment/refund:
+    post:
+      tags: [支付]
+      summary: 发起退款
+      operationId: createRefund
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundResponse"
+
+  "/api/merchant/order/payment/query/{orderId}":
+    get:
+      tags: [订单]
+      summary: 查询支付订单
+      operationId: queryPayment
+      parameters:
+        - $ref: "#/components/parameters/orderId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentQueryResponse"
+
+  "/api/merchant/order/refund/query/{refundId}":
+    get:
+      tags: [订单]
+      summary: 查询退款订单
+      operationId: queryRefund
+      parameters:
+        - $ref: "#/components/parameters/refundId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundQueryResponse"

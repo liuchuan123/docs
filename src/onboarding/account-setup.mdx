@@ -1,0 +1,93 @@
+---
+title: "账户配置"
+description: "审核通过后的初始化设置指南"
+---
+
+
+审核通过后，你需要完成以下初始化配置才能正常使用 API 服务。
+
+## 生成并上传 RSA 密钥
+
+API 签名需要 RSA 密钥对。按以下步骤操作：
+
+### 1. 生成 RSA 密钥对
+
+使用 OpenSSL 生成 2048 位 RSA 私钥：
+
+```bash
+# 生成私钥
+openssl genrsa -out private_key.pem 2048
+
+# 提取公钥
+openssl rsa -in private_key.pem -pubout -out public_key.pem
+```
+
+<Warning>
+  私钥仅此一份，请妥善保管，不要泄露或提交到代码仓库。
+</Warning>
+
+### 2. 上传公钥
+
+登录商户门户，进入「开发设置 → API 密钥」：
+
+1. 点击「上传公钥」
+2. 将 `public_key.pem` 文件内容粘贴到输入框
+3. 确认上传
+
+上传成功后，平台会展示你的 **商户 ID（merchantId）**，请妥善记录，所有 API 调用都需要携带。
+
+## 配置 IP 白名单
+
+为增强安全性，建议配置 IP 白名单限制哪些服务器可以调用 OpenAPI。
+
+进入「开发设置 → 安全设置」：
+
+1. 添加允许调用 API 的服务器出口 IP
+2. 多个 IP 使用逗号分隔
+3. 支持 IPv4 格式（如 `192.0.2.1, 198.51.100.42`）
+
+<Tip>
+  沙盒测试期间可以暂时不配置 IP 白名单（留空表示不限制），但生产环境强烈建议配置。
+</Tip>
+
+详见 [IP 白名单](/integration/ip-whitelist)。
+
+## 配置 Webhook
+
+Webhook 用于接收支付状态变更的实时通知。
+
+进入「开发设置 → Webhook 管理」：
+
+1. 点击「添加 Webhook」
+2. 填写你的回调 URL（需支持 HTTPS）
+3. 设置签名密钥（Secret，用于验签，系统可自动生成）
+4. 选择要订阅的事件类型（建议全部订阅）
+5. 保存配置
+
+配置完成后，可以使用「测试发送」功能验证你的 Webhook 端点是否可达。
+
+详见 [Webhook 配置](/api/webhook/overview)。
+
+## 获取 API 地址
+
+| 环境     | 地址                                          |
+| -------- | --------------------------------------------- |
+| 沙盒环境 | `https://api-sbx.paymetrixpay.com/api`      |
+| 生产环境 | `https://openapi.{{DOMAIN_BASE}}/api`              |
+
+## 检查清单
+
+在开始 API 联调前，请确认以下项：
+
+- [ ] RSA 密钥对已生成，私钥已安全存储
+- [ ] RSA 公钥已上传至平台
+- [ ] 商户 ID 已记录
+- [ ] IP 白名单已配置（或确认暂不限制）
+- [ ] Webhook 回调地址已配置
+- [ ] Webhook 签名密钥已记录
+- [ ] 沙盒环境 API 地址已确认
+
+## 下一步
+
+- 阅读 [签名与鉴权](/integration/authentication) 了解签名算法
+- 在 [沙盒环境](/integration/sandbox) 中开始 API 联调

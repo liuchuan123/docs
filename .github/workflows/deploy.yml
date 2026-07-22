@@ -1,0 +1,48 @@
+name: Build & deploy docs (multi-brand)
+
+# main 只放「单一内容源」。每次 push 到 main，按品牌生成站点并强推到各自的
+# deploy 分支；Mintlify 侧为每个品牌建一个项目，分别监听对应 deploy 分支。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brands:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        # 从 brands/*.json 动态得到品牌列表，新增品牌无需改本文件
+        run: echo "list=$(ls brands/*.json | xargs -n1 basename | sed 's/\.json$//' | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: brands
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        brand: ${{ fromJson(needs.brands.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build ${{ matrix.brand }}
+        run: node scripts/build.mjs ${{ matrix.brand }}
+      - name: Push to deploy branch
+        run: |
+          set -euo pipefail
+          BR=$(jq -r .deployBranch "brands/${{ matrix.brand }}.json")
+          cd "build/${{ matrix.brand }}"
+          git init -q -b "$BR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "build ${{ matrix.brand }} @ ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$BR"
