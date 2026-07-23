@@ -25,14 +25,20 @@ description: "订单状态流转与各状态说明"
 ```mermaid
 flowchart TD
     INIT([INIT 待支付]) --> PAYING([PAYING 支付中])
-    INIT -.超时.-> EXPIRED([EXPIRED 已过期])
+    INIT -.超时未支付.-> EXPIRED([EXPIRED 已过期])
+    INIT -.关闭/取消.-> CLOSE([CLOSE 已关闭])
     PAYING --> SUCCESS([PAY_SUCCESS 支付成功])
     PAYING --> FAIL([PAY_FAIL 支付失败])
-    PAYING --> CLOSE([CLOSE 已关闭])
+    PAYING -.中断/关单.-> CLOSE
     SUCCESS --> PARTIAL([PARTIAL_REFUND 部分退款])
+    SUCCESS --> REFUNDED([REFUNDED 已退款])
     SUCCESS --> DISPUTE([IN_DISPUTE 争议中])
-    PARTIAL --> REFUNDED([REFUNDED 已退款])
+    PARTIAL --> REFUNDED
 ```
+
+<Note>
+  终态为 **REFUNDED（已退款）**、**CLOSE（已关闭）**、**EXPIRED（已过期）**。其中 **EXPIRED 仅由 INIT（待支付）超时到达**；**PAYING（支付中）中断或关单只会进入 CLOSE，不会进入 EXPIRED**。
+</Note>
 
 ## 状态详解
 
@@ -41,7 +47,7 @@ flowchart TD
 订单刚创建，等待用户支付。此状态下：
 - 尚未产生任何资金流动
 - 用户可以取消支付
-- 超时未支付将自动进入 CLOSE
+- 超时未支付将自动进入 **EXPIRED（已过期）**；商户主动取消或关单则进入 **CLOSE（已关闭）**
 
 ### PAYING（支付中）
 
@@ -70,14 +76,22 @@ flowchart TD
 
 ### CLOSE（已关闭）
 
-订单在有效期内未完成支付，系统自动关闭或商户主动取消。
+订单被主动关闭或支付中断后关单，例如商户取消、重复下单清理、用户在支付中途放弃。已关闭为终态。
+
+<Note>
+  **CLOSE ≠ EXPIRED。** 待支付订单在有效期内一直未支付，系统自动置为 **EXPIRED（已过期）**；其余关单场景（含支付中断）进入 **CLOSE（已关闭）**。二者都是终态、不可再流转。
+</Note>
+
+### EXPIRED（已过期）
+
+待支付订单（INIT）超过有效期仍未支付，系统自动置为已过期。已过期为终态，需重新创建订单。
 
 ### IN_DISPUTE（争议中）
 
 消费者通过发卡行发起 Chargeback，订单进入争议状态。
 
 <Warning>
-  商户需要在应诉期内提交抗辩材料，逾期将默认败诉。及时关注 `order.dispute.*` Webhook 事件。
+  争议需要在应诉期内提交抗辩材料，逾期将默认败诉。**门户的争议列表是只读的**，不能在其中直接提交材料——请通过 [商户门户 → 争议跟踪](/portal/orders#争议跟踪) 说明的「风控申诉（Risk Appeal）」功能提交。同时及时关注 `order.dispute.*` Webhook 事件。
 </Warning>
 
 ## 交易状态

@@ -58,6 +58,10 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
 | `timestamp`  | Long   | 事件发生时间（Unix **秒**）              |
 | `data`       | Object | 事件负载，字段随事件类型变化（snake_case）|
 
+<Note>
+  信封的 `timestamp` 为 Unix 秒；`data` 内的时间字段（如 `success_time`、`refund_time`、`respond_by` 等）统一为 `YYYY-MM-DD HH:mm:ss` 格式，与[支付查询 API](/api/payment/query) 一致。**所有时间均为 UTC。**
+</Note>
+
 ## 各事件 Payload
 
 ### 支付成功 `order.payment.succeeded`

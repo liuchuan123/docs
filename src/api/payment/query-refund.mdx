@@ -77,8 +77,8 @@ openapi: "GET /api/merchant/order/refund/query/{refundId}"
 ```bash
 curl -X GET "https://openapi.{{DOMAIN_BASE}}/api/merchant/order/refund/query/26020100098765432" \
   -H "X-Merchant-Id: 10001" \
-  -H "X-Timestamp: 1737008400000" \
-  -H "X-Nonce: b4c5d6e7f8" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
   -H "X-Signature: <RSA_SIGNATURE>"
 ```
 

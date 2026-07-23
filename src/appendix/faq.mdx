@@ -78,7 +78,7 @@ description: "接入过程中的高频问题、排查思路与最佳实践"
     用**原始请求体字符串**（非重新序列化）+ 你的 Webhook Secret，按 `t={timestamp},v1={hmac}` 校验，签名串为 `timestamp + "." + rawBody`。详见 [Webhook 签名验签](/api/webhook/signature)。
   </Accordion>
   <Accordion title="重试策略是怎样的？">
-    默认指数退避：1 → 3 → 9 → 27 → 81 → 243 分钟，最多 6 次，单次超时 10 秒。可在门户按 Webhook 配置。
+    默认指数退避：首次失败后依次等待 1 → 3 → 9 → 27 → 81 分钟；最多投递 6 次（包含首次），单次超时 10 秒。可在门户按 Webhook 配置。
   </Accordion>
 </AccordionGroup>
 

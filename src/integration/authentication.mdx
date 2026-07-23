@@ -26,7 +26,7 @@ flowchart LR
 | Header           | 说明                         | 示例              |
 | ---------------- | ---------------------------- | ----------------- |
 | `X-Merchant-Id`  | 商户 ID（平台分配）          | `10001`           |
-| `X-Timestamp`    | 请求时间戳（Unix 毫秒）      | `1737004800000`   |
+| `X-Timestamp`    | 请求时间戳（Unix 毫秒）      | `<CURRENT_UNIX_MS>` |
 | `X-Nonce`        | 随机字符串，每次请求唯一     | `a3f7b2c1d4e5`    |
 | `X-Signature`    | RSA 签名（Base64 编码）      | `dGhpcyBpcyBhbi...` |
 
@@ -56,7 +56,7 @@ NONCE
 
 ### Body 规范化
 
-对于 JSON 请求体，需递归拍平为 `key=value&key=value` 格式再做 SHA256：
+对于 JSON 请求体，平台会递归拍平为 `key=value&key=value` 格式再做 SHA256。每一层对象的 key 按字母序处理；数组按原有顺序处理；`null` 不参与签名。**嵌套对象的 key 不带父级前缀，直接平铺**（如 `shipping.address.city` 拍平后为 `city=...`，而非 `shipping.address.city=...`）。不要直接对原始 JSON 文本做 SHA256——建议直接复用下方示例中的签名助手，以确保与平台拍平规则完全一致。
 
 ```json
 // 原始请求体
@@ -82,7 +82,7 @@ POST
 /api/merchant/payment/create
 
 8f2c1d3a5b7e9f...
-1737004800000
+<CURRENT_UNIX_MS>
 a3f7b2c1d4e5
 ```
 
@@ -107,7 +107,7 @@ String signBase64 = Base64.getEncoder().encodeToString(signBytes);
 - **时间窗**：`X-Timestamp` 与服务器时间偏差不超过 ±2 分钟
 - **Nonce 去重**：同一商户 ID + Nonce 组合在 5 分钟内不可重复使用
 
-超出时间窗返回 `TIMESTAMP_EXPIRED` 错误码；重复 Nonce 返回 `BUSY` 错误码。
+超出时间窗返回 `1001029 auth.timestamp.expired`；重复 Nonce 返回 `1000 error.busy`。
 
 ## 请求体格式约定
 
@@ -134,86 +134,12 @@ String signBase64 = Base64.getEncoder().encodeToString(signBytes);
 ```
 
 <Warning>
-  签名使用的是**原始请求体**。如果使用方式二（`data` 包裹），签名原文的 Body 部分应包含整个 `{"data":{...}}`，而非仅内部的业务参数。
+  `data` 只是业务参数的可选包装层。签名始终按本页的**递归规范化规则**计算，而不是对原始 JSON 字符串或外层 `data` 字段直接求哈希。为避免实现差异，新接入建议直接传业务参数；如需使用 `data` 包裹，请使用下一页提供的 helper。
 </Warning>
 
-## 签名示例代码
+## 可运行的签名实现
 
-以下是各语言的签名示例：
-
-<Tabs>
-  <Tab title="Java">
-
-```java
-import java.security.*;
-import java.util.Base64;
-
-public class SignatureUtil {
-
-    public static String sign(String canonicalString, PrivateKey privateKey) throws Exception {
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initSign(privateKey);
-        signature.update(canonicalString.getBytes("UTF-8"));
-        byte[] signBytes = signature.sign();
-        return Base64.getEncoder().encodeToString(signBytes);
-    }
-
-    public static String buildCanonicalString(
-            String method, String uri, String queryString,
-            String body, long timestamp, String nonce) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        String bodyHash = body.isEmpty() ? "" :
-            bytesToHex(md.digest(body.getBytes("UTF-8")));
-        return method + "\n" + uri + "\n" + queryString + "\n"
-            + bodyHash + "\n" + timestamp + "\n" + nonce;
-    }
-}
-```
-
-  </Tab>
-  <Tab title="Python">
-
-```python
-import hashlib
-import base64
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-
-def sign(canonical_string: str, private_key) -> str:
-    signature = private_key.sign(
-        canonical_string.encode('utf-8'),
-        padding.PKCS1v15(),
-        hashes.SHA256()
-    )
-    return base64.b64encode(signature).decode('utf-8')
-
-def build_canonical_string(method, uri, query_string, body, timestamp, nonce):
-    body_hash = hashlib.sha256(body.encode('utf-8')).hexdigest() if body else ""
-    return f"{method}\n{uri}\n{query_string}\n{body_hash}\n{timestamp}\n{nonce}"
-```
-
-  </Tab>
-  <Tab title="Node.js">
-
-```javascript
-const crypto = require('crypto');
-
-function sign(canonicalString, privateKeyPem) {
-    const sign = crypto.createSign('SHA256');
-    sign.update(canonicalString);
-    sign.end();
-    return sign.sign(privateKeyPem, 'base64');
-}
-
-function buildCanonicalString(method, uri, queryString, body, timestamp, nonce) {
-    const bodyHash = body ?
-        crypto.createHash('sha256').update(body).digest('hex') : '';
-    return `${method}\n${uri}\n${queryString}\n${bodyHash}\n${timestamp}\n${nonce}`;
-}
-```
-
-  </Tab>
-</Tabs>
+签名最容易因 Body 规范化不一致而失败。请不要根据伪代码自行补全实现，直接使用 [签名工具与示例](/integration/sdk) 中的 Java、Node.js 或 Python helper；该页的实现与服务端规则一致，并包含端到端调用示例。
 
 ## cURL 示例
 
@@ -221,8 +147,8 @@ function buildCanonicalString(method, uri, queryString, body, timestamp, nonce) 
 curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
   -H "Content-Type: application/json" \
   -H "X-Merchant-Id: 10001" \
-  -H "X-Timestamp: 1737004800000" \
-  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
   -H "X-Signature: dGhpcyBpcyBhbiBleGFtcGxl..." \
   -d '{
     "merchant_order_no": "ORD-20260201-0001",
@@ -259,10 +185,10 @@ curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
 
 ### 签名验证失败？
 
-1. 确认 `X-Timestamp` 和 `X-Nonce` 的值与签名原文中一致
+1. 确认 `X-Timestamp` 和 `X-Nonce` 的值与签名原文中一致，且在发送前即时生成
 2. 确认公钥已正确上传至平台
 3. 确认签名原文中的换行符为 `\n`（不是 `\r\n`）
-4. 确认 Body 部分是对**原始完整请求体**做 SHA256
+4. 确认 Body 部分是对**规范化后的请求体**做 SHA256，而不是对原始 JSON 文本做 SHA256
 5. 检查时间戳是否在 ±2 分钟窗口内
 
 ## 相关页面

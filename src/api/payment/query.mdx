@@ -32,7 +32,7 @@ openapi: "GET /api/merchant/order/payment/query/{orderId}"
   "code": 200,
   "msg": "success",
   "data": {
-    "platform_order_id": "26020100012345678",
+    "order_id": "26020100012345678",
     "merchant_order_no": "ORD-20260201-0001",
     "payment_currency_code": "USD",
     "payment_amount": 100.00,
@@ -48,12 +48,12 @@ openapi: "GET /api/merchant/order/payment/query/{orderId}"
 
 | 字段                       | 类型       | 说明                                         |
 | -------------------------- | ---------- | -------------------------------------------- |
-| `platform_order_id`        | String     | 平台订单号                                   |
+| `order_id`                 | String     | 平台订单号，与创建接口返回的 `order_id`、查询入参 `orderId` 为同一个值 |
 | `merchant_order_no`        | String     | 商户订单号                                   |
 | `payment_currency_code`    | String     | 支付币种                                     |
 | `payment_amount`           | BigDecimal | 支付金额                                     |
 | `payment_status`           | Integer    | 订单维度支付状态（见下方枚举）               |
-| `payment_success_time`     | String     | 支付成功时间，格式 `yyyy-MM-dd HH:mm:ss`     |
+| `payment_success_time`     | String     | 支付成功时间，格式 `yyyy-MM-dd HH:mm:ss`（UTC）|
 | `settlement_currency_code` | String     | 结算币种（可能与支付币种不同）               |
 | `settlement_amount`        | BigDecimal | 结算金额（扣除平台手续费后）                 |
 
@@ -85,8 +85,8 @@ openapi: "GET /api/merchant/order/payment/query/{orderId}"
 ```bash
 curl -X GET "https://openapi.{{DOMAIN_BASE}}/api/merchant/order/payment/query/26020100012345678" \
   -H "X-Merchant-Id: 10001" \
-  -H "X-Timestamp: 1737004800000" \
-  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
   -H "X-Signature: <RSA_SIGNATURE>"
 ```
 

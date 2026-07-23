@@ -6,7 +6,7 @@ description: "从入驻到完成第一笔支付的完整接入流程"
 本章节帮助你快速了解从入驻 {{BRAND}} 到完成第一笔支付的完整流程。
 
 <Note>
-  **10 分钟接入路径**：① 用 [签名工具与示例](/integration/sdk) 复制一份签名代码 → ② [创建支付](/api/payment/create) 拿到 `pay_url` → ③ 跳转 [收银台](/checkout/hosted) 完成付款 → ④ 用 [Webhook](/api/webhook/overview) 接收结果。直接看下方「第三步：完成第一笔支付」。
+  **最短接入路径**：① 用 [签名工具与示例](/integration/sdk) 接入签名 helper → ② [创建支付](/api/payment/create) 拿到 `pay_url` → ③ 跳转 [收银台](/checkout/hosted) 完成付款 → ④ 用 [Webhook](/api/webhook/overview) 接收结果。先在服务端完成签名与 Webhook 验签，再接入前端跳转。
 </Note>
 
 ## 整体架构
@@ -44,7 +44,7 @@ description: "从入驻到完成第一笔支付的完整接入流程"
     调用 API 验证签名与业务流程（测试商户由平台开通）。
   </Step>
   <Step title="集成收银台">
-    使用托管收银台或自建方案完成前端支付流程。
+    将用户跳转到创建支付返回的 `pay_url`，完成托管收银台支付流程。
   </Step>
   <Step title="上线">
     完成联调后正式对外提供服务。
@@ -87,8 +87,8 @@ OpenAPI 接口前缀：
 curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
   -H "Content-Type: application/json" \
   -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
-  -H "X-Timestamp: 1737004800000" \
-  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
   -H "X-Signature: <RSA_SIGNATURE>" \
   -d '{
     "merchant_order_no": "ORD-20260201-0001",
@@ -121,6 +121,8 @@ curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
   }'
 ```
 
+`X-Timestamp` 必须在发送前生成 Unix 毫秒时间戳，`X-Nonce` 必须每次请求唯一，`X-Signature` 必须由同一组值和**实际请求体**使用签名 helper 生成。不要直接复制上述占位值；可运行代码见 [签名工具与示例](/integration/sdk)。
+
 ### 2. 引导用户跳转收银台
 
 成功响应中包含 `order_id` 与 `pay_url`，将用户重定向到 `pay_url` 完成支付。
@@ -138,6 +140,10 @@ curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
 
 ### 3. 接收 Webhook 通知
 
+<Note>
+  接收通知前，需先在门户「开发设置 → Webhook 管理」配置回调地址与签名密钥，详见 [Webhook 概述 · 配置 Webhook](/api/webhook/overview#配置-webhook)。
+</Note>
+
 支付完成后，平台会向你的 Webhook 地址推送 `order.payment.succeeded` 事件。
 
 <Warning>
@@ -151,8 +157,8 @@ curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
 ```bash
 curl -X GET "https://openapi.{{DOMAIN_BASE}}/api/merchant/order/payment/query/26020100012345678" \
   -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
-  -H "X-Timestamp: 1737004800000" \
-  -H "X-Nonce: a3f7b2c1d4e5" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
   -H "X-Signature: <RSA_SIGNATURE>"
 ```
 

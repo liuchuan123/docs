@@ -90,17 +90,23 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     INIT([待支付]) --> PAYING([支付中])
+    INIT -.超时未支付.-> EXPIRED([已过期])
     PAYING --> SUCCESS([支付成功])
     PAYING --> FAIL([支付失败])
-    PAYING --> CLOSE([已关闭 / 已过期])
+    PAYING -.中断/关单.-> CLOSE([已关闭])
     SUCCESS --> PARTIAL([部分退款])
+    SUCCESS --> REFUNDED([已退款])
     SUCCESS --> DISPUTE([争议中])
-    PARTIAL --> REFUNDED([已退款])
+    PARTIAL --> REFUNDED
 ```
+
+<Note>
+  完整的状态码、状态含义与流转规则见 [订单生命周期](/concepts/order-lifecycle)。
+</Note>
 
 ## 超时处理
 
-- 支付订单有有效期，超过有效期未支付将自动关闭
+- 待支付订单有有效期，超过有效期仍未支付将自动置为 **已过期（EXPIRED）**；支付中断或关单则为 **已关闭（CLOSE）**
 - 建议商户在 `pay_url` 页面提示用户支付有效期
 
 ## 幂等性

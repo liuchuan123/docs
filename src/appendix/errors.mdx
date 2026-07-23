@@ -44,7 +44,7 @@ description: "OpenAPI 错误码列表及处理建议"
 | 1001001 | `merchant.is.disabled` | 商户已被禁用 | 联系平台处理 |
 | 1001002 | `merchant.account.is.disabled` | 商户账户已被禁用 | 联系平台处理 |
 | 1001003 | `merchant.account.pay.function.is.disabled` | 账户支付功能已关闭 | 联系平台处理 |
-| 1001005 | `order.already.exists` | 商户订单号重复 | 使用新的 `merchant_order_no` |
+| 1001005 | `order.already.exists` | 商户订单号重复 | 不要立即换新单号重试；先在你的系统中查找该单号首次创建时保存的 `order_id`，再查询状态或恢复后续流程 |
 | 1001008 | `order.already.paid.or.canceled` | 订单已支付或已取消 | 检查订单状态，不可重复操作 |
 | 1001009 | `order.not.exists` | 订单不存在 | 检查 `order_id` 是否正确 |
 | 1001010 | `order.expired` | 订单已过期 | 订单超时未支付，需重新创建 |
@@ -63,7 +63,7 @@ description: "OpenAPI 错误码列表及处理建议"
 | --- | --- | --- | --- |
 | 1001018 | `order.cannot.be.refunded` | 当前订单状态不允许退款 | 检查订单状态是否可退款 |
 | 1001019 | `refund.amount.exceeds.order.amount` | 退款金额超出可退金额 | 调整退款金额 |
-| 1001024 | `refund.transaction.already.exists` | 退款单已存在（重复提交） | 使用新的 `merchant_refund_no` |
+| 1001024 | `refund.transaction.already.exists` | 退款单已存在（重复提交） | 不要立即换新退款单号重试；先在你的系统中查找首次提交时保存的 `refund_id`，再查询退款状态 |
 | 1001062 | `refund.amount.must.be.positive` | 退款金额必须大于 0 | 检查 `amount` |
 | 1001064 | `refund.currency.mismatch` | 退款币种与订单币种不一致 | 使用与订单一致的币种 |
 | 1001066 | `refund.not.supported` | 该订单不支持退款 | 确认渠道/订单是否可退 |
@@ -94,10 +94,10 @@ description: "OpenAPI 错误码列表及处理建议"
 
 | 类型 | 建议 |
 | --- | --- |
-| 幂等接口 | 相同参数重试（平台保证幂等） |
-| 非幂等接口 | 先查询状态确认，再决定是否重试 |
-| 重试间隔 | 1s → 3s → 5s（指数退避） |
-| 最大重试次数 | 3 次 |
+| 查询接口 | 可有限重试；每次重试都重新生成时间戳、Nonce 和签名 |
+| 创建支付 / 发起退款 | 超时后不要盲目重发或更换业务单号。优先使用本地已保存的平台单号查询；无法确认时联系平台支持 |
+| 客户端退避 | 建议使用带抖动的退避，例如 1s → 3s → 9s；这是商户侧建议，不代表平台承诺的重试策略 |
+| 重试上限 | 建议最多 3 次，并记录每次请求与响应，防止重复业务操作 |
 
 ## 错误处理最佳实践
 

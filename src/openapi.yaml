@@ -204,7 +204,7 @@ components:
             data:
               type: object
               properties:
-                platform_order_id: { type: string, description: 平台订单号, example: "26020100012345678" }
+                order_id: { type: string, description: "平台订单号（与创建返回的 order_id、查询入参 orderId 为同一值）", example: "26020100012345678" }
                 merchant_order_no: { type: string, description: 商户订单号, example: ORD-20260201-0001 }
                 payment_currency_code: { type: string, example: USD }
                 payment_amount: { type: number, example: 100.00 }

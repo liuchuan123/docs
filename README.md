@@ -31,7 +31,10 @@ build/<brand>/           构建产物（已 gitignore）
 
 ## 本地预览
 
+预览依赖 Mintlify CLI（需全局安装，仓库未内置）：
+
 ```bash
+npm i -g mint                 # 首次：安装 Mintlify CLI
 npm run build                 # 构建全部品牌 -> build/
 # 或只构建一个： npm run build:bananapaid
 cd build/bananapaid && mint dev

@@ -86,8 +86,8 @@ openapi: "POST /api/merchant/payment/refund"
 curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/refund" \
   -H "Content-Type: application/json" \
   -H "X-Merchant-Id: 10001" \
-  -H "X-Timestamp: 1737008400000" \
-  -H "X-Nonce: b4c5d6e7f8" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
   -H "X-Signature: <RSA_SIGNATURE>" \
   -d '{
     "merchant_refund_no": "REF-20260201-0001",
