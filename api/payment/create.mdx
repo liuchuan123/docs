@@ -1,0 +1,219 @@
+---
+title: "创建支付"
+description: "商户服务端调用此接口创建支付订单，获取收银台地址引导用户完成付款。"
+openapi: "POST /api/merchant/payment/create"
+---
+
+创建支付订单是商户接入的第一步。商户服务端调用此接口生成订单，并获得收银台地址 `pay_url`，随后将用户引导至该地址完成支付。
+
+## 接口信息
+
+| 项目         | 说明                                          |
+| ------------ | --------------------------------------------- |
+| 请求方式     | `POST`                                        |
+| 路径         | `/api/merchant/payment/create`                |
+| Content-Type | `application/json`                            |
+| 鉴权方式     | RSA 签名（详见 [签名与鉴权](/integration/authentication)） |
+
+## 请求参数
+
+```json
+{
+  "merchant_order_no": "ORD-20260201-0001",
+  "amount": 100.00,
+  "currency_code": "USD",
+  "description": "Premium Plan - Monthly",
+  "redirect_url": "https://merchant.com/payment/return",
+  "cancel_url": "https://merchant.com/payment/cancel",
+  "products": [
+    {
+      "product_id": "PROD001",
+      "name": "Premium Plan",
+      "description": "Monthly subscription",
+      "price": 100.00,
+      "quantity": 1,
+      "category": "Subscription",
+      "sku": "SKU-001",
+      "url": "https://merchant.com/product/PROD001"
+    }
+  ],
+  "shipping": {
+    "name": "Jane Smith",
+    "address": {
+      "line1": "1 Market Street",
+      "line2": "Suite 200",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "US",
+      "postal_code": "94105"
+    }
+  },
+  "customer": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "full_name": "John Doe",
+    "address": {
+      "line1": "1 Market Street",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "US",
+      "postal_code": "94105"
+    }
+  }
+}
+```
+
+### 顶层字段
+
+| 字段                | 类型       | 必填 | 说明                                                     |
+| ------------------- | ---------- | ---- | -------------------------------------------------------- |
+| `merchant_order_no` | String     | 是   | 商户订单号，商户系统内唯一，1–64 字符                    |
+| `amount`            | BigDecimal | 是   | 订单金额，> 0，小数精度按币种配置校验                    |
+| `currency_code`     | String     | 是   | 订单币种，ISO 4217 三位代码，如 `USD`、`HKD`             |
+| `description`       | String     | 否   | 交易描述，展示在收银台，最多 256 字符                    |
+| `redirect_url`      | String     | 否   | 支付成功后用户回跳地址；**信用卡类支付必填**，最多 512 字符 |
+| `cancel_url`        | String     | 否   | 用户取消支付时的回跳地址，最多 512 字符                  |
+| `products`          | Array      | 是   | 商品列表，1–100 个                                       |
+| `shipping`          | Object     | 是   | 收货信息（见下）                                         |
+| `customer`          | Object     | 是   | 客户信息（见下）                                         |
+
+<Note>
+  历史文档中的 `merchant_transaction_id` 字段已更名为 `merchant_order_no`，请使用新字段名。
+</Note>
+
+### 商品信息 `products[]`
+
+| 字段          | 类型       | 必填 | 说明                       |
+| ------------- | ---------- | ---- | -------------------------- |
+| `product_id`  | String     | 是   | 商品 ID，最多 64 字符      |
+| `name`        | String     | 是   | 商品名称，最多 256 字符    |
+| `description` | String     | 否   | 商品描述，最多 128 字符    |
+| `price`       | BigDecimal | 是   | 商品单价，> 0              |
+| `quantity`    | Integer    | 是   | 数量，1–999999             |
+| `category`    | String     | 否   | 商品分类，最多 64 字符     |
+| `sku`         | String     | 否   | 商品 SKU，最多 64 字符     |
+| `url`         | String     | 是   | 商品详情链接，合法 URL     |
+
+### 收货信息 `shipping`
+
+| 字段      | 类型   | 必填 | 说明                              |
+| --------- | ------ | ---- | --------------------------------- |
+| `name`    | String | 是   | 收货人姓名（名 + 空格 + 姓）      |
+| `address` | Object | 是   | 收货地址（见下）                  |
+
+### 客户信息 `customer`
+
+| 字段         | 类型   | 必填 | 说明                       |
+| ------------ | ------ | ---- | -------------------------- |
+| `first_name` | String | 否   | 名，最多 64 字符           |
+| `last_name`  | String | 否   | 姓，最多 64 字符           |
+| `full_name`  | String | 是   | 完整姓名，最多 128 字符    |
+| `address`    | Object | 否   | 客户地址（见下，部分地区必填） |
+
+### 地址信息 `address`
+
+| 字段          | 类型   | 必填 | 说明                                         |
+| ------------- | ------ | ---- | -------------------------------------------- |
+| `line1`       | String | 是   | 地址行 1，最多 128 字符                      |
+| `line2`       | String | 否   | 地址行 2，最多 128 字符                      |
+| `city`        | String | 是   | 城市，最多 64 字符                           |
+| `state`       | String | 是   | 州/省，最多 64 字符                          |
+| `country`     | String | 是   | ISO 3166-1 alpha-2 国家代码（大写两位），如 `US` |
+| `postal_code` | String | 是   | 邮编，最多 16 字符                           |
+
+## 响应参数
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "order_id": "26020100012345678",
+    "pay_url": "https://cashier.paymatrixpay.com/checkout?orderId=26020100012345678"
+  }
+}
+```
+
+| 字段       | 类型   | 说明                                              |
+| ---------- | ------ | ------------------------------------------------- |
+| `order_id` | String | 平台订单号（17 位），**后续查询、退款均使用此号** |
+| `pay_url`  | String | 收银台地址，引导用户跳转到此 URL 完成支付         |
+
+## 错误码
+
+| 错误码  | 说明                    |
+| ------- | ----------------------- |
+| 200     | 成功                    |
+| 1001005 | 商户订单号重复          |
+| 1001015 | 参数校验失败            |
+| 1001016 | 签名验证失败            |
+| 1001063 | 金额小数位数超过币种精度 |
+| 1001065 | 币种未配置              |
+| 500     | 系统错误                |
+
+完整错误码见 [错误码参考](/appendix/errors)。
+
+## 请求示例
+
+<Tabs>
+  <Tab title="cURL">
+
+```bash
+curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
+  -H "Content-Type: application/json" \
+  -H "X-Merchant-Id: 10001" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
+  -H "X-Signature: <RSA_SIGNATURE>" \
+  -d '{
+    "merchant_order_no": "ORD-20260201-0001",
+    "amount": 100.00,
+    "currency_code": "USD",
+    "description": "Premium Plan - Monthly",
+    "redirect_url": "https://merchant.com/payment/return",
+    "cancel_url": "https://merchant.com/payment/cancel",
+    "products": [
+      {
+        "product_id": "PROD001",
+        "name": "Premium Plan",
+        "price": 100.00,
+        "quantity": 1,
+        "url": "https://merchant.com/product/PROD001"
+      }
+    ],
+    "shipping": {
+      "name": "Jane Smith",
+      "address": {
+        "line1": "1 Market Street",
+        "city": "San Francisco",
+        "state": "CA",
+        "country": "US",
+        "postal_code": "94105"
+      }
+    },
+    "customer": {
+      "full_name": "John Doe"
+    }
+  }'
+```
+
+  </Tab>
+</Tabs>
+
+## 幂等与重复下单
+
+- 同一 `merchant_order_no` 已存在时，接口返回 `1001005 order.already.exists`，**不会重复创建订单**。
+- 若下单请求超时未收到响应，请先用 [支付查询](/api/payment/query) 确认订单是否已创建，再决定是否重试；不要直接用同一订单号重试。
+
+## 下一步
+
+- 将用户重定向到 `pay_url` 完成支付
+- 配置 [Webhook](/api/webhook/overview) 接收支付结果通知
+- 或调用 [支付查询](/api/payment/query) 接口主动确认状态
+
+## 相关页面
+
+- [签名与鉴权](/integration/authentication) — RSA 签名构造方法
+- [支付查询](/api/payment/query) — 用 `order_id` 查询支付状态
+- [发起退款](/api/payment/refund) — 对订单退款
+- [Webhook 通知](/api/webhook/overview) — 异步接收支付结果

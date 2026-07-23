@@ -1,0 +1,208 @@
+---
+title: "事件类型"
+description: "Webhook 事件类型完整列表与 Payload 结构"
+---
+
+PayMatrix 通过 Webhook 推送订单、退款与争议事件。事件类型为 `.` 分隔的小写字符串。
+
+## 支付事件
+
+| 事件类型                     | 说明         | 可订阅 | 当前推送 |
+| ---------------------------- | ------------ | ------ | -------- |
+| `order.payment.succeeded`    | 支付成功     | ✔      | ✔        |
+| `order.payment.failed`       | 支付失败     | ✔      | ✔        |
+| `order.payment.created`      | 支付订单创建 | —      | 预留     |
+| `order.payment.processing`   | 支付处理中   | —      | 预留     |
+| `order.payment.cancelled`    | 支付取消     | —      | 预留     |
+
+## 退款事件
+
+| 事件类型                  | 说明         | 可订阅 | 当前推送 |
+| ------------------------- | ------------ | ------ | -------- |
+| `order.refund.succeeded`  | 退款成功     | ✔      | ✔        |
+| `order.refund.failed`     | 退款失败     | ✔      | ✔        |
+| `order.refund.created`    | 退款申请创建 | —      | 预留     |
+| `order.refund.processing` | 退款处理中   | —      | 预留     |
+
+## 争议事件
+
+| 事件类型                     | 说明         | 可订阅 | 当前推送 |
+| ---------------------------- | ------------ | ------ | -------- |
+| `order.dispute.created`      | 争议创建     | ✔      | ✔        |
+| `order.dispute.won`          | 商户胜诉     | ✔      | ✔        |
+| `order.dispute.lost`         | 商户败诉     | ✔      | ✔        |
+| `order.dispute.closed`       | 争议关闭     | ✔      | ✔        |
+| `order.dispute.evidence_due` | 待提交证据   | —      | 预留     |
+
+<Note>
+  标记为「预留」的事件已在事件目录中定义，但当前版本尚未推送。请以「当前推送」列为准进行订阅与联调。结算（`settlement.*`）与账户（`account.*`）类事件同样属于预留，暂未推送。
+</Note>
+
+## Payload 通用结构
+
+所有事件的 HTTP Body 统一为如下信封结构，`data` 内容随事件类型变化：
+
+```json
+{
+  "event_id": "evt_order.payment.succeeded_10001_26020100012345678",
+  "event_type": "order.payment.succeeded",
+  "timestamp": 1749081600,
+  "data": { }
+}
+```
+
+| 字段         | 类型   | 说明                                     |
+| ------------ | ------ | ---------------------------------------- |
+| `event_id`   | String | 事件唯一 ID，用于幂等去重                |
+| `event_type` | String | 事件类型                                 |
+| `timestamp`  | Long   | 事件发生时间（Unix **秒**）              |
+| `data`       | Object | 事件负载，字段随事件类型变化（snake_case）|
+
+<Note>
+  信封的 `timestamp` 为 Unix 秒；`data` 内的时间字段（如 `success_time`、`refund_time`、`respond_by` 等）统一为 `YYYY-MM-DD HH:mm:ss` 格式，与[支付查询 API](/api/payment/query) 一致。**所有时间均为 UTC。**
+</Note>
+
+## 各事件 Payload
+
+### 支付成功 `order.payment.succeeded`
+
+```json
+{
+  "event_type": "order.payment.succeeded",
+  "timestamp": 1749081600,
+  "data": {
+    "order_id": "26020100012345678",
+    "transaction_id": "26020100055500001",
+    "merchant_order_no": "ORD-20260201-0001",
+    "amount": 100.00,
+    "currency": "USD",
+    "settlement_amount": 98.00,
+    "settlement_currency": "USD",
+    "platform_fee": 2.00,
+    "payment_method": "card",
+    "success_time": "2026-02-01 12:30:00"
+  }
+}
+```
+
+### 支付失败 `order.payment.failed`
+
+```json
+{
+  "event_type": "order.payment.failed",
+  "timestamp": 1749081600,
+  "data": {
+    "order_id": "26020100012345679",
+    "transaction_id": "26020100055500002",
+    "merchant_order_no": "ORD-20260201-0002",
+    "amount": 100.00,
+    "currency": "USD",
+    "failure_reason": "insufficient_funds",
+    "failed_time": "2026-02-01 12:31:00"
+  }
+}
+```
+
+### 退款成功 `order.refund.succeeded`
+
+```json
+{
+  "event_type": "order.refund.succeeded",
+  "timestamp": 1749085200,
+  "data": {
+    "order_id": "26020100012345678",
+    "transaction_id": "26020100098765432",
+    "merchant_refund_no": "REF-20260201-0001",
+    "refund_amount": 50.00,
+    "refund_currency": "USD",
+    "platform_fee": 0.00,
+    "reason": "用户申请退款",
+    "refund_time": "2026-02-01 13:00:00"
+  }
+}
+```
+
+### 退款失败 `order.refund.failed`
+
+```json
+{
+  "event_type": "order.refund.failed",
+  "timestamp": 1749085200,
+  "data": {
+    "order_id": "26020100012345678",
+    "transaction_id": "26020100098765433",
+    "merchant_refund_no": "REF-20260201-0002",
+    "refund_amount": 50.00,
+    "refund_currency": "USD",
+    "failure_reason": "channel_error",
+    "failed_time": "2026-02-01 13:05:00"
+  }
+}
+```
+
+### 争议创建 `order.dispute.created`
+
+```json
+{
+  "event_type": "order.dispute.created",
+  "timestamp": 1749090000,
+  "data": {
+    "order_id": "26020100012345678",
+    "dispute_id": "dp_26020100011122",
+    "amount": 100.00,
+    "currency": "USD",
+    "reason": "fraudulent",
+    "respond_by": "2026-02-15 23:59:59",
+    "created_at": "2026-02-01 14:00:00"
+  }
+}
+```
+
+### 争议结果 `order.dispute.won` / `order.dispute.lost`
+
+```json
+{
+  "event_type": "order.dispute.won",
+  "timestamp": 1749093600,
+  "data": {
+    "order_id": "26020100012345678",
+    "dispute_id": "dp_26020100011122",
+    "result": "won",
+    "resolved_at": "2026-02-10 10:00:00"
+  }
+}
+```
+
+### 争议关闭 `order.dispute.closed`
+
+```json
+{
+  "event_type": "order.dispute.closed",
+  "timestamp": 1749097200,
+  "data": {
+    "order_id": "26020100012345678",
+    "dispute_id": "dp_26020100011122",
+    "closed_at": "2026-02-11 10:00:00"
+  }
+}
+```
+
+## 订阅与匹配
+
+订阅时 `events` 支持两种写法：
+
+- **精确匹配**：如 `order.payment.succeeded`
+- **前缀通配**：以 `.*` 结尾，如 `order.payment.*`、`order.*`（匹配该前缀下的所有事件）
+
+| 场景         | 建议订阅                                                        |
+| ------------ | -------------------------------------------------------------- |
+| 订单状态同步 | `order.payment.succeeded`、`order.payment.failed`              |
+| 退款处理     | `order.refund.succeeded`、`order.refund.failed`                |
+| 争议处理     | `order.dispute.created`、`order.dispute.won`、`order.dispute.lost`、`order.dispute.closed` |
+| 全面监控     | `order.*`                                                     |
+
+## 相关页面
+
+- [Webhook 概述](/api/webhook/overview) — 配置与投递机制
+- [Webhook 签名验签](/api/webhook/signature) — 验签示例代码
+- [支付查询 API](/api/payment/query) — 主动查询备用方案

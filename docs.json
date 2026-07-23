@@ -1,0 +1,144 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "aspen",
+  "name": "PayMatrix",
+  "logo": {
+    "dark": "/logo/logo-dark.png",
+    "light": "/logo/logo-light.png"
+  },
+  "favicon": "/logo/icon.png",
+  "modeToggle": true,
+  "api": {
+    "openapi": "openapi.yaml",
+    "playground": {
+      "display": "interactive"
+    },
+    "mdx": {
+      "server": "https://openapi.paymatrixpay.com"
+    }
+  },
+  "colors": {
+    "primary": "#0052FF",
+    "light": "#4D8BFF",
+    "dark": "#0A0D14"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "进入商户门户",
+      "href": "https://merchant.paymatrixpay.com"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "帮助文档",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "概览",
+            "icon": "compass",
+            "pages": [
+              "index"
+            ]
+          },
+          {
+            "group": "入驻指南",
+            "icon": "clipboard-check",
+            "pages": [
+              "onboarding/overview",
+              "onboarding/registration",
+              "onboarding/verification",
+              "onboarding/account-setup"
+            ]
+          },
+          {
+            "group": "商户门户",
+            "icon": "gauge",
+            "pages": [
+              "portal/dashboard",
+              "portal/orders",
+              "portal/settlements",
+              "portal/developer-settings",
+              "portal/account"
+            ]
+          },
+          {
+            "group": "核心概念",
+            "icon": "diagram-project",
+            "pages": [
+              "concepts/payment-flow",
+              "concepts/order-lifecycle",
+              "concepts/settlement",
+              "concepts/ledger"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "商户接入",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "快速开始",
+            "icon": "rocket",
+            "pages": [
+              "getting-started/quickstart"
+            ]
+          },
+          {
+            "group": "接入准备",
+            "icon": "plug",
+            "pages": [
+              "integration/overview",
+              "integration/authentication",
+              "integration/sdk",
+              "integration/ip-whitelist",
+              "integration/sandbox"
+            ]
+          },
+          {
+            "group": "支付 API",
+            "icon": "credit-card",
+            "pages": [
+              "api/payment/create",
+              "api/payment/query",
+              "api/payment/refund",
+              "api/payment/query-refund"
+            ]
+          },
+          {
+            "group": "收银台",
+            "icon": "cart-shopping",
+            "pages": [
+              "checkout/hosted"
+            ]
+          },
+          {
+            "group": "通知回调",
+            "icon": "webhook",
+            "pages": [
+              "api/webhook/overview",
+              "api/webhook/events",
+              "api/webhook/signature"
+            ]
+          },
+          {
+            "group": "附录",
+            "icon": "book-bookmark",
+            "pages": [
+              "appendix/faq",
+              "appendix/errors",
+              "appendix/currency"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "website": "https://www.paymatrixpay.com"
+    }
+  }
+}
