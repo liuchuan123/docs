@@ -1,0 +1,113 @@
+---
+title: "错误码参考"
+description: "OpenAPI 错误码列表及处理建议"
+---
+
+
+本文列出了 OpenAPI 可能返回的错误码及处理建议。
+
+## 通用响应格式
+
+所有接口在出错时返回统一格式：
+
+```json
+{
+  "code": 1001015,
+  "msg": "param.check.failed",
+  "data": null
+}
+```
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `code` | Integer | 错误码，`200` 表示成功 |
+| `msg` | String | 错误信息（i18n 消息键） |
+| `data` | Object / null | 错误时通常为 `null` |
+
+## 签名与鉴权错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1001015 | `param.check.failed` | 参数校验失败 | 检查请求参数是否符合规范 |
+| 1001016 | `sign.invalid` | RSA 签名验证失败 | 检查签名算法和私钥是否正确 |
+| 1001025 | `auth.merchant.sign.params.missing` | 缺少必填的签名请求头 | 检查 4 个签名头是否全部携带 |
+| 1001026 | `auth.merchant.id.invalid` | 商户 ID 格式无效 | 检查 `X-Merchant-Id` 是否正确 |
+| 1001027 | `auth.merchant.not.found.or.key.missing` | 商户不存在或公钥未配置 | 检查商户 ID 或上传 RSA 公钥 |
+| 1001028 | `auth.timestamp.format.invalid` | 时间戳格式无效 | 确保 `X-Timestamp` 为 Unix 毫秒时间戳 |
+| 1001029 | `auth.timestamp.expired` | 时间戳超出有效窗口（±2 分钟） | 校准服务器时间 |
+| 1001038 | `ip.not.in.whitelist` | 客户端 IP 不在白名单内 | 将当前服务器 IP 加入白名单 |
+
+## 下单与订单错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1001001 | `merchant.is.disabled` | 商户已被禁用 | 联系平台处理 |
+| 1001002 | `merchant.account.is.disabled` | 商户账户已被禁用 | 联系平台处理 |
+| 1001003 | `merchant.account.pay.function.is.disabled` | 账户支付功能已关闭 | 联系平台处理 |
+| 1001005 | `order.already.exists` | 商户订单号重复 | 不要立即换新单号重试；先在你的系统中查找该单号首次创建时保存的 `order_id`，再查询状态或恢复后续流程 |
+| 1001008 | `order.already.paid.or.canceled` | 订单已支付或已取消 | 检查订单状态，不可重复操作 |
+| 1001009 | `order.not.exists` | 订单不存在 | 检查 `order_id` 是否正确 |
+| 1001010 | `order.expired` | 订单已过期 | 订单超时未支付，需重新创建 |
+| 1001014 | `transaction.not.exists` | 交易不存在 | 检查交易 ID 是否正确 |
+| 1001020 | `order.has.transaction.in.processing` | 订单有交易正在处理中 | 等待当前交易完成后重试 |
+| 1001060 | `order.amount.must.be.positive` | 订单金额必须大于 0 | 检查 `amount` |
+| 1001061 | `product.price.must.be.positive` | 商品单价必须大于 0 | 检查商品 `price` |
+| 1001063 | `amount.scale.exceeds.currency` | 金额小数位数超过币种精度 | 按币种精度传金额 |
+| 1001065 | `currency.not.configured` | 币种未配置 | 使用受支持的币种 |
+| 1001036 | `pay.in.amount.out.of.range` | 入金额度超出范围 | 检查金额限制 |
+| 1001037 | `pay.in.daily.limit.exceeded` | 入金日限额超限 | 次日重试 |
+
+## 退款错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1001018 | `order.cannot.be.refunded` | 当前订单状态不允许退款 | 检查订单状态是否可退款 |
+| 1001019 | `refund.amount.exceeds.order.amount` | 退款金额超出可退金额 | 调整退款金额 |
+| 1001024 | `refund.transaction.already.exists` | 退款单已存在（重复提交） | 不要立即换新退款单号重试；先在你的系统中查找首次提交时保存的 `refund_id`，再查询退款状态 |
+| 1001062 | `refund.amount.must.be.positive` | 退款金额必须大于 0 | 检查 `amount` |
+| 1001064 | `refund.currency.mismatch` | 退款币种与订单币种不一致 | 使用与订单一致的币种 |
+| 1001066 | `refund.not.supported` | 该订单不支持退款 | 确认渠道/订单是否可退 |
+| 1001067 | `refund.window.expired` | 退款窗口已过期 | 已超过可退款时间 |
+
+## 风控错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 1006002010 | `trade.risk.check.rejected` | 交易被风控拒绝 | 交易无法继续 |
+| 1006002011 | `trade.risk.check.review` | 交易需人工风控审核 | 等待审核结果 |
+
+## 系统错误
+
+| 错误码 | 错误信息 | 说明 | 处理建议 |
+| --- | --- | --- | --- |
+| 400 | `error.bad.request` | 请求格式错误 | 检查请求体格式 |
+| 401 | `error.unauthorized` | 未授权 | 检查认证信息 |
+| 403 | `error.forbidden` | 禁止访问 | 检查权限配置 |
+| 404 | `error.not.found` | 资源不存在 | 检查请求路径 |
+| 500 | `error.internal.server.error` | 系统内部错误 | 稍后重试或联系技术支持 |
+| 999 | `error.unknown` | 未知错误 | 联系技术支持 |
+| 1000 | `error.busy` | 重复请求（Nonce 去重命中） | 更换 Nonce 后重试 |
+
+## 重试策略
+
+对于可重试的错误（如系统错误），建议：
+
+| 类型 | 建议 |
+| --- | --- |
+| 查询接口 | 可有限重试；每次重试都重新生成时间戳、Nonce 和签名 |
+| 创建支付 / 发起退款 | 超时后不要盲目重发或更换业务单号。优先使用本地已保存的平台单号查询；无法确认时联系平台支持 |
+| 客户端退避 | 建议使用带抖动的退避，例如 1s → 3s → 9s；这是商户侧建议，不代表平台承诺的重试策略 |
+| 重试上限 | 建议最多 3 次，并记录每次请求与响应，防止重复业务操作 |
+
+## 错误处理最佳实践
+
+1. **记录日志**：记录每次 API 调用的请求和响应，方便排查问题
+2. **签名错误优先排查**：检查时间同步和签名算法实现
+3. **根据错误码分类处理**：4xx/9xx 检查请求参数，5xx 等待后重试
+4. **提供降级方案**：支付异常时不应阻塞用户体验
+
+## 相关页面
+
+- [签名与鉴权](/integration/authentication) — 签名算法与错误排查
+- [创建支付 API](/api/payment/create) — 接口参数与错误码
+- [Webhook 验签](/api/webhook/signature) — 回调验签错误处理

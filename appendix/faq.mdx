@@ -1,0 +1,123 @@
+---
+title: "常见问题与排错"
+description: "接入过程中的高频问题、排查思路与最佳实践"
+---
+
+按主题整理的高频问题与排查清单。找不到答案时，请联系平台技术支持并附上请求时间、`merchant_order_no` 与响应内容。
+
+## 签名与鉴权
+
+<AccordionGroup>
+  <Accordion title="签名验证失败（1001016 sign.invalid）怎么查？">
+    按顺序排查：
+    1. 签名 URI 是否**包含 `/api` 前缀**（如 `/api/merchant/payment/create`）
+    2. 时间戳是否为 **Unix 毫秒**，且与服务器偏差在 ±2 分钟内
+    3. 请求体是否对**你实际发送的原始 body** 做规范化 + SHA-256
+    4. 换行是否为 `\n`（不是 `\r\n`），签名原文是否共 6 行、末行无换行
+    5. 公钥是否已在门户「开发设置」上传，且与你签名用的私钥配对
+
+    建议先打印签名原文逐行比对，参考 [签名工具与示例](/integration/sdk)。
+  </Accordion>
+  <Accordion title="提示缺少签名参数（1001025）">
+    4 个请求头必须全部携带：`X-Merchant-Id`、`X-Timestamp`、`X-Nonce`、`X-Signature`。
+  </Accordion>
+  <Accordion title="时间戳过期（1001029）">
+    `X-Timestamp` 与服务器时间偏差超过 ±2 分钟。请校准服务器时钟（NTP），并确保用毫秒时间戳。
+  </Accordion>
+  <Accordion title="重复请求 / 系统繁忙（1000 busy）">
+    同一 `X-Nonce` 在 5 分钟内被重复使用。每次请求都要生成新的随机 `X-Nonce`（如 UUID）。
+  </Accordion>
+  <Accordion title="在接口页的 Try it 里直接发送为什么失败？">
+    Try it 用于查看与编辑参数结构，但**无法在浏览器里用你的私钥生成 `X-Signature`**。真正的调用需由你的服务端签名后发起，参考 [签名工具与示例](/integration/sdk)。
+  </Accordion>
+</AccordionGroup>
+
+## 下单与查询
+
+<AccordionGroup>
+  <Accordion title="创建支付返回商户订单号重复（1001005）">
+    同一 `merchant_order_no` 已存在，平台不会重复建单。若是超时重试，请先用 [支付查询](/api/payment/query) 确认是否已建单，不要用同一订单号直接重试。
+  </Accordion>
+  <Accordion title="查询要用哪个 ID？">
+    - 查支付：用**平台订单号 `order_id`**（创建支付返回值），不是商户订单号
+    - 查退款：用**平台退款交易号 `refund_id`**（发起退款返回值）
+    - 退款：按**平台订单号 `order_id`** 发起
+  </Accordion>
+  <Accordion title="下单超时没拿到响应怎么办？">
+    先用 `merchant_order_no` 对应记录、或对返回过的 `order_id` 调用 [支付查询](/api/payment/query) 判断订单是否已创建/已支付，再决定补单或引导用户重付。切勿用同一订单号盲目重试。
+  </Accordion>
+  <Accordion title="金额精度报错（1001063）">
+    金额小数位数需符合币种精度（多数币种 2 位，部分币种如 JPY 为 0 位）。如实传递金额，避免多余尾零。
+  </Accordion>
+</AccordionGroup>
+
+## 收银台与回跳
+
+<AccordionGroup>
+  <Accordion title="支付完成后回跳带了什么参数？">
+    回跳 `redirect_url` 时携带 `p_transaction_id`（平台交易号）与 `p_status`（交易状态：`2` 成功 / `6` 失败 / `1` 处理中）。**仅用于前端展示**，发货/入账请以 Webhook 为准。详见 [收银台](/checkout/hosted)。
+  </Accordion>
+  <Accordion title="用户支付完没回跳/回跳丢了">
+    用户可能中途关闭页面。不要依赖回跳判断结果——以 Webhook 为权威来源，必要时用 `order_id` 主动查询兜底。
+  </Accordion>
+</AccordionGroup>
+
+## Webhook
+
+<AccordionGroup>
+  <Accordion title="没收到 Webhook 怎么办？">
+    1. 确认回调 URL 为公网可达的 **HTTPS** 地址，且在门户已订阅对应事件
+    2. 确认你的端点在 **10 秒内返回 HTTP 2xx**（否则视为失败并重试）
+    3. 在门户「开发设置 → Webhook → 投递记录」查看投递结果，可手动重试
+    4. 兜底：用 `order_id` 调用 [支付查询](/api/payment/query) 核对状态
+  </Accordion>
+  <Accordion title="同一事件收到多次？">
+    平台至少投递一次，失败会按指数退避重试。请依据 `event_id` 做**幂等去重**。
+  </Accordion>
+  <Accordion title="Webhook 验签失败？">
+    用**原始请求体字符串**（非重新序列化）+ 你的 Webhook Secret，按 `t={timestamp},v1={hmac}` 校验，签名串为 `timestamp + "." + rawBody`。详见 [Webhook 签名验签](/api/webhook/signature)。
+  </Accordion>
+  <Accordion title="重试策略是怎样的？">
+    默认指数退避：首次失败后依次等待 1 → 3 → 9 → 27 → 81 分钟；最多投递 6 次（包含首次），单次超时 10 秒。可在门户按 Webhook 配置。
+  </Accordion>
+</AccordionGroup>
+
+## 退款
+
+<AccordionGroup>
+  <Accordion title="退款用什么定位原支付？">
+    用**平台订单号 `order_id`**（一个订单仅一笔成功支付）。退款请求字段为 `merchant_refund_no` + `order_id` + `currency_code` + `amount`，没有 `refund_time`。
+  </Accordion>
+  <Accordion title="能退多少 / 能退几次？">
+    支持多次部分退款，累计不超过原支付金额；退款币种需与原订单一致。
+  </Accordion>
+  <Accordion title="退款结果怎么确认？">
+    异步返回，通过 `order.refund.succeeded` / `order.refund.failed` 通知，或用 `refund_id` 调用 [退款查询](/api/payment/query-refund)。
+  </Accordion>
+</AccordionGroup>
+
+## 上线前检查
+
+<Steps>
+  <Step title="签名闭环">
+    创建/查询/退款均能通过验签，签名原文逐行核对无误。
+  </Step>
+  <Step title="Webhook 就绪">
+    已验签、已按 `event_id` 幂等，10 秒内返回 2xx。
+  </Step>
+  <Step title="兜底机制">
+    有基于 `order_id` 的主动查询补单逻辑。
+  </Step>
+  <Step title="安全配置">
+    生产公钥已上传，IP 白名单已配置（如启用），全链路 HTTPS。
+  </Step>
+  <Step title="小额验证">
+    用小金额真实交易验证生产链路后再放量。
+  </Step>
+</Steps>
+
+## 相关页面
+
+- [签名工具与示例](/integration/sdk) — 可复制的签名实现
+- [错误码参考](/appendix/errors) — 完整错误码
+- [测试与上线](/integration/sandbox) — 联调与上线清单

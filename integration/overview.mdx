@@ -1,0 +1,124 @@
+---
+title: "接入概览"
+description: "商户 API 接入总览，包括接入流程、通信协议、安全机制说明"
+---
+
+
+本文档面向需要对接 Banana Paid OpenAPI 的商户开发者，帮助你了解整体接入流程与技术要求。
+
+<Tip>
+  还没入驻？先去 [商户门户](https://merchant.bananapaid.com) 注册账号，审核通过后才能调用 API。
+</Tip>
+
+## 接入流程
+
+<Steps>
+  <Step title="完成商户入驻">
+    在商户门户注册并完成资质审核，获取商户 ID 和生产环境权限。
+  </Step>
+  <Step title="生成并上传 RSA 密钥">
+    生成 2048 位 RSA 密钥对，将公钥上传至商户门户「开发设置」。
+  </Step>
+  <Step title="配置安全信息">
+    设置 IP 白名单、Webhook 回调地址和签名密钥。
+  </Step>
+  <Step title="联调测试">
+    使用平台开通的测试商户完成接口联调，验证签名和业务流程。
+  </Step>
+  <Step title="切换生产环境">
+    联调通过后，将 API 地址和密钥切换为生产环境配置，正式上线。
+  </Step>
+</Steps>
+
+## 通信协议
+
+| 项目         | 说明                                   |
+| ------------ | -------------------------------------- |
+| 协议         | HTTPS（强制）                          |
+| 请求方式     | POST / GET                             |
+| 数据格式     | JSON                                   |
+| 字符编码     | UTF-8                                  |
+| Content-Type | application/json                       |
+
+## 安全机制
+
+Banana Paid OpenAPI 提供多层安全防护：
+
+### RSA 签名鉴权
+
+所有支付相关接口需要携带 RSA 签名。商户使用自己的私钥对请求内容签名，平台使用商户公钥验签。
+
+详见 [签名与鉴权](/integration/authentication)。
+
+### IP 白名单
+
+可配置允许调用 OpenAPI 的服务器 IP 地址，非白名单 IP 的请求将被拒绝。
+
+详见 [IP 白名单](/integration/ip-whitelist)。
+
+### 防重放攻击
+
+平台会校验请求的时间戳和随机数，防止恶意重放请求：
+- 时间戳有效窗口：±2 分钟
+- Nonce 去重周期：同一商户 5 分钟内不可重复
+
+### Webhook 签名
+
+平台推送的 Webhook 事件使用 HMAC-SHA256 签名，商户服务端需要验签以确保回调来源可信。
+
+详见 [Webhook 签名验签](/api/webhook/signature)。
+
+## 请求头规范
+
+所有需要签名的接口必须携带以下请求头：
+
+| Header           | 必填 | 说明                         |
+| ---------------- | ---- | ---------------------------- |
+| `Content-Type`   | 是   | `application/json`           |
+| `X-Merchant-Id`  | 是   | 平台分配的商户 ID            |
+| `X-Timestamp`    | 是   | 请求时间戳（Unix 毫秒）      |
+| `X-Nonce`        | 是   | 随机字符串，每次请求唯一      |
+| `X-Signature`    | 是   | RSA 签名（Base64 编码）       |
+
+## 接口前缀
+
+所有 OpenAPI 接口统一使用生产环境前缀：`https://openapi.bananapaid.com/api`
+
+<CardGroup cols={2}>
+  <Card title="创建支付" icon="credit-card" href="/api/payment/create">
+    POST /api/merchant/payment/create
+  </Card>
+  <Card title="支付查询" icon="magnifying-glass" href="/api/payment/query">
+    GET /api/merchant/order/payment/query/{'{orderId}'}
+  </Card>
+  <Card title="发起退款" icon="receipt-refund" href="/api/payment/refund">
+    POST /api/merchant/payment/refund
+  </Card>
+  <Card title="退款查询" icon="document-search" href="/api/payment/query-refund">
+    GET /api/merchant/order/refund/query/{'{refundId}'}
+  </Card>
+</CardGroup>
+
+## 响应格式
+
+所有接口统一返回以下 JSON 结构：
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": { ... }
+}
+```
+
+| 字段   | 类型           | 说明                   |
+| ------ | -------------- | ---------------------- |
+| `code` | Integer        | 业务状态码，200 表示成功 |
+| `msg`  | String         | 提示信息               |
+| `data` | Object / null  | 业务数据，失败时为 null |
+
+## 下一步
+
+- 了解 [签名与鉴权](/integration/authentication) 详细规范
+- 查看 [支付 API](/api/payment/create) 接口文档
+- 参考 [测试与上线](/integration/sandbox) 完成联调
