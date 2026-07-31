@@ -44,7 +44,7 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
 
 ```json
 {
-  "event_id": "evt_order.payment.succeeded_10001_26020100012345678",
+  "event_id": "evt_9f2ac3d1e5b74806a1f2c3d4e5f60718",
   "event_type": "order.payment.succeeded",
   "timestamp": 1749081600,
   "data": { }
@@ -53,7 +53,7 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
 
 | 字段         | 类型   | 说明                                     |
 | ------------ | ------ | ---------------------------------------- |
-| `event_id`   | String | 事件唯一 ID，用于幂等去重                |
+| `event_id`   | String | 事件唯一 ID，用于幂等去重；同一业务事件重复推送时该 ID 保持不变 |
 | `event_type` | String | 事件类型                                 |
 | `timestamp`  | Long   | 事件发生时间（Unix **秒**）              |
 | `data`       | Object | 事件负载，字段随事件类型变化（snake_case）|
@@ -111,7 +111,8 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
   "timestamp": 1749085200,
   "data": {
     "order_id": "26020100012345678",
-    "transaction_id": "26020100098765432",
+    "refund_id": "26020100098765432",
+    "transaction_id": "26020100055500001",
     "merchant_refund_no": "REF-20260201-0001",
     "refund_amount": 50.00,
     "refund_currency": "USD",
@@ -130,7 +131,8 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
   "timestamp": 1749085200,
   "data": {
     "order_id": "26020100012345678",
-    "transaction_id": "26020100098765433",
+    "refund_id": "26020100098765433",
+    "transaction_id": "26020100055500001",
     "merchant_refund_no": "REF-20260201-0002",
     "refund_amount": 50.00,
     "refund_currency": "USD",
@@ -139,6 +141,10 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
   }
 }
 ```
+
+<Note>
+  退款事件中，`refund_id` 为本次退款交易 ID，`transaction_id` 为被退的**原支付**交易 ID（与[支付事件](#支付成功-order-payment-succeeded)中的 `transaction_id` 同一含义），`merchant_refund_no` 为商户退款单号。三者配合 `order_id` 可完整定位退款与其原支付。
+</Note>
 
 ### 争议创建 `order.dispute.created`
 
@@ -167,11 +173,15 @@ description: "Webhook 事件类型完整列表与 Payload 结构"
   "data": {
     "order_id": "26020100012345678",
     "dispute_id": "dp_26020100011122",
-    "result": "won",
+    "result": "merchant_won",
     "resolved_at": "2026-02-10 10:00:00"
   }
 }
 ```
+
+<Note>
+  `result` 取值：`order.dispute.won` 事件为 `merchant_won`，`order.dispute.lost` 事件为 `merchant_lost`。
+</Note>
 
 ### 争议关闭 `order.dispute.closed`
 

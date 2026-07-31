@@ -68,6 +68,8 @@ description: "OpenAPI 错误码列表及处理建议"
 | 1001064 | `refund.currency.mismatch` | 退款币种与订单币种不一致 | 使用与订单一致的币种 |
 | 1001066 | `refund.not.supported` | 该订单不支持退款 | 确认渠道/订单是否可退 |
 | 1001067 | `refund.window.expired` | 退款窗口已过期 | 已超过可退款时间 |
+| 1001072 | `refund.mode.not.supported` | 该交易不支持所选退款模式 | 改用该渠道支持的退款模式（原路/代付） |
+| 1001073 | `refund.payee.required` | 代付退款缺少收款人信息 | 补充 `payee`（姓名/手机/账户类型/账号等） |
 
 ## 风控错误
 
