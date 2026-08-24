@@ -1,0 +1,180 @@
+---
+title: "接入指引"
+description: "从入驻到完成第一笔支付的完整接入流程"
+---
+
+本章节帮助你快速了解从入驻 PayMatrix 到完成第一笔支付的完整流程。
+
+<Note>
+  **最短接入路径**：① 用 [签名工具与示例](/integration/sdk) 接入签名 helper → ② [创建支付](/api/payment/create) 拿到 `pay_url` → ③ 跳转 [收银台](/checkout/hosted) 完成付款 → ④ 用 [Webhook](/api/webhook/overview) 接收结果。先在服务端完成签名与 Webhook 验签，再接入前端跳转。
+</Note>
+
+## 整体架构
+
+PayMatrix 为商户提供以下核心服务：
+
+<CardGroup cols={2}>
+  <Card title="OpenAPI 网关" icon="server">
+    商户服务端调用接口的入口，支持 RSA 签名鉴权
+  </Card>
+  <Card title="托管收银台" icon="credit-card">
+    面向消费者的支付页面，支持银行卡、电子钱包等多种支付方式
+  </Card>
+  <Card title="商户门户" icon="chart-bar">
+    交易查询、结算管理、开发者配置等管理后台
+  </Card>
+  <Card title="Webhook 通知" icon="webhook">
+    异步推送支付、退款、争议等事件到商户服务端
+  </Card>
+</CardGroup>
+
+## 接入流程总览
+
+<Steps>
+  <Step title="商户入驻">
+    在商户门户注册并提交资料，等待平台审核通过。
+  </Step>
+  <Step title="配置密钥">
+    生成 RSA 密钥对，将公钥上传至门户「开发设置」，并记录商户 ID。
+  </Step>
+  <Step title="配置 Webhook">
+    设置接收事件通知的回调地址和签名密钥。
+  </Step>
+  <Step title="联调测试">
+    调用 API 验证签名与业务流程（测试商户由平台开通）。
+  </Step>
+  <Step title="集成收银台">
+    将用户跳转到创建支付返回的 `pay_url`，完成托管收银台支付流程。
+  </Step>
+  <Step title="上线">
+    完成联调后正式对外提供服务。
+  </Step>
+</Steps>
+
+## 环境与地址
+
+| 用途     | 地址                                     |
+| -------- | ---------------------------------------- |
+| OpenAPI  | `https://openapi.paymatrixpay.com/api`   |
+| 收银台   | `https://cashier.paymatrixpay.com`       |
+| 商户门户 | `https://merchant.paymatrixpay.com`      |
+
+OpenAPI 接口前缀：
+- 支付接口：`/api/merchant/payment`
+- 订单查询：`/api/merchant/order`
+
+## 第一步：注册商户账号
+
+前往 [商户门户](https://merchant.paymatrixpay.com) 注册账号并提交入驻资料，等待审核通过。详见 [入驻指南](/onboarding/overview)。
+
+## 第二步：配置 API 密钥
+
+审核通过后，登录商户门户进入「开发设置」：
+
+1. **生成 RSA 密钥对**（2048 位，SHA256WithRSA）
+2. **上传公钥**至平台
+3. **记录商户 ID**（`merchantId`），后续所有 API 调用需在 `X-Merchant-Id` 请求头携带
+
+<Tip>
+  妥善保管私钥，不要泄露或提交到代码仓库。建议使用密钥管理服务（KMS）存储。
+</Tip>
+
+## 第三步：完成第一笔支付
+
+### 1. 创建支付订单
+
+```bash
+curl -X POST "https://openapi.paymatrixpay.com/api/merchant/payment/create" \
+  -H "Content-Type: application/json" \
+  -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
+  -H "X-Signature: <RSA_SIGNATURE>" \
+  -d '{
+    "merchant_order_no": "ORD-20260201-0001",
+    "amount": 100.00,
+    "currency_code": "USD",
+    "redirect_url": "https://your-site.com/payment/return",
+    "cancel_url": "https://your-site.com/payment/cancel",
+    "products": [
+      {
+        "product_id": "PROD001",
+        "name": "Example Product",
+        "price": 100.00,
+        "quantity": 1,
+        "url": "https://your-site.com/product/PROD001"
+      }
+    ],
+    "shipping": {
+      "name": "Jane Smith",
+      "address": {
+        "line1": "1 Market Street",
+        "city": "San Francisco",
+        "state": "CA",
+        "country": "US",
+        "postal_code": "94105"
+      }
+    },
+    "customer": {
+      "full_name": "John Doe"
+    }
+  }'
+```
+
+`X-Timestamp` 必须在发送前生成 Unix 毫秒时间戳，`X-Nonce` 必须每次请求唯一，`X-Signature` 必须由同一组值和**实际请求体**使用签名 helper 生成。不要直接复制上述占位值；可运行代码见 [签名工具与示例](/integration/sdk)。
+
+### 2. 引导用户跳转收银台
+
+成功响应中包含 `order_id` 与 `pay_url`，将用户重定向到 `pay_url` 完成支付。
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "order_id": "26020100012345678",
+    "pay_url": "https://cashier.paymatrixpay.com/checkout?orderId=26020100012345678"
+  }
+}
+```
+
+### 3. 接收 Webhook 通知
+
+<Note>
+  接收通知前，需先在门户「开发设置 → Webhook 管理」配置回调地址与签名密钥，详见 [Webhook 概述 · 配置 Webhook](/api/webhook/overview#配置-webhook)。
+</Note>
+
+支付完成后，平台会向你的 Webhook 地址推送 `order.payment.succeeded` 事件。
+
+<Warning>
+  务必以 Webhook 通知作为订单状态变更的权威来源，前端重定向仅用于提升用户体验，不可作为发货依据。
+</Warning>
+
+### 4. 查询支付状态（可选）
+
+用返回的平台订单号 `order_id` 查询：
+
+```bash
+curl -X GET "https://openapi.paymatrixpay.com/api/merchant/order/payment/query/26020100012345678" \
+  -H "X-Merchant-Id: YOUR_MERCHANT_ID" \
+  -H "X-Timestamp: <CURRENT_UNIX_MS>" \
+  -H "X-Nonce: <UNIQUE_NONCE>" \
+  -H "X-Signature: <RSA_SIGNATURE>"
+```
+
+## 下一步
+
+<CardGroup cols={2}>
+  <Card title="签名与鉴权" icon="key" href="/integration/authentication">
+    了解 RSA 签名规则与请求头要求
+  </Card>
+  <Card title="创建支付" icon="credit-card" href="/api/payment/create">
+    查看完整的接口参数与代码示例
+  </Card>
+  <Card title="Webhook 通知" icon="webhook" href="/api/webhook/overview">
+    配置回调地址与签名验签
+  </Card>
+  <Card title="收银台" icon="cart-shopping" href="/checkout/hosted">
+    跳转托管收银台并处理回跳
+  </Card>
+</CardGroup>
