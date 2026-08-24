@@ -54,26 +54,104 @@ NONCE
 | `TIMESTAMP`                | Unix 毫秒时间戳，与 `X-Timestamp` 头一致                     |
 | `NONCE`                    | 随机字符串，与 `X-Nonce` 头一致                              |
 
-### Body 规范化
+### Query 参数规范化
 
-对于 JSON 请求体，平台会递归拍平为 `key=value&key=value` 格式再做 SHA256。每一层对象的 key 按字母序处理；数组按原有顺序处理；`null` 不参与签名。**嵌套对象的 key 不带父级前缀，直接平铺**（如 `shipping.address.city` 拍平后为 `city=...`，而非 `shipping.address.city=...`）。不要直接对原始 JSON 文本做 SHA256——建议直接复用下方示例中的签名助手，以确保与平台拍平规则完全一致。
+`SORTED_QUERY_STRING` 只处理 URL 中 `?` 后面的 Query 参数，与请求方法无关：
 
-```json
-// 原始请求体
-{
-  "amount": 100,
-  "currency_code": "USD"
-}
+1. 按参数名的 Java 字符串自然顺序（UTF-16 code unit）升序排列。现有接口字段名均为 ASCII 字符，因此等价于 ASCII 升序。
+2. 按 `key=value` 拼接多个参数，并使用 `&` 连接。
+3. 签名时使用服务器解析后的参数名和值，不对它们再次 URL 编码。
+4. 没有 Query 参数时，第三行是空行，但不能删除这一行。
 
-// 拍平后
-amount=100&currency_code=USD
+例如，实际请求是：
 
-// 签名原文中该行
-SHA256("amount=100&currency_code=USD")
-// = "8f2c1d..."
+```http
+POST /api/merchant/payment/create?version=2&channel=card
 ```
 
-对于 GET 请求无 Body 时，该行保留空行。
+第三行是：
+
+```text
+channel=card&version=2
+```
+
+<Warning>
+  同一个 Query 参数名不要重复出现。平台只取该参数的一个值参与签名，重复参数在不同 HTTP 客户端和服务器中的取值行为可能不同。
+</Warning>
+
+### Body 规范化
+
+POST、PUT 或 PATCH 的 JSON 放在 HTTP Body 中。实际发送的 JSON 字段顺序没有要求；平台解析 JSON 后按下面的规则生成 `BODY_CANONICAL_STRING`：
+
+1. 从最外层对象开始处理。
+2. 每一层对象的 key 按 Java 字符串自然顺序（UTF-16 code unit）升序排列。现有接口字段名均为 ASCII 字符，因此等价于 ASCII 升序。
+3. 按排序后的顺序深度优先遍历；遇到嵌套对象时，先完整处理该对象，再处理下一个同级 key。
+4. 标量字段输出为 `key=value`，多个字段使用 `&` 连接。
+5. 嵌套 key 不带父级前缀。例如 `shipping.address.city` 输出为 `city=...`。
+6. 对象数组保持原有元素顺序；每个数组元素按同一套对象规则递归处理，不添加数组下标。
+7. `null` 不参与签名。
+8. 最后计算 `SHA256(BODY_CANONICAL_STRING)`，输出小写十六进制摘要。
+
+例如：
+
+```json
+{
+  "shipping": {
+    "name": "Zhang San",
+    "address": {
+      "line1": "No.123 Street",
+      "city": "Guangzhou",
+      "state": "Guangdong",
+      "country": "CN",
+      "postal_code": "510000",
+      "line2": "Room 401"
+    }
+  }
+}
+```
+
+`shipping` 内部排序后是 `address`、`name`，所以要先完整处理 `address`，最后处理 `name`：
+
+```text
+city=Guangzhou&country=CN&line1=No.123 Street&line2=Room 401&postal_code=510000&state=Guangdong&name=Zhang San
+```
+
+对应的 SHA-256 小写十六进制值是：
+
+```text
+3700b81a05b325f430f69d44a947e299faf8763bbf72593acc46f5e89d6126ad
+```
+
+对象数组示例：
+
+```json
+{
+  "products": [
+    { "name": "Second", "quantity": 2 },
+    { "name": "First", "quantity": 1 }
+  ]
+}
+```
+
+数组不会按 `name` 重新排序，结果是：
+
+```text
+name=Second&quantity=2&name=First&quantity=1
+```
+
+<Warning>
+  当前签名规范只支持数组中的对象。字符串、数字、布尔值等标量数组元素不会进入签名；请不要在需要签名的业务请求中使用标量数组。嵌套 key 不带父级前缀，因此也不要在不同对象中使用会产生歧义的同名叶子 key。
+</Warning>
+
+请使用接口定义中的 ASCII 字段名，不要自行添加非 ASCII JSON key 或 Query 参数名，否则不同语言的默认字符串排序规则可能不同。
+
+Body 中的字符串值按原文拼接，不再次 URL 编码。数字和布尔值按平台解析 JSON 后的文本形式参与签名。为了避免 `100`、`100.0`、`100.00` 等表示方式在不同语言中产生差异，请只序列化一次 JSON，并将同一份 Body 同时用于签名和发送；金额不要使用多余尾零。
+
+没有 Body 时，第四行是空行。注意，空 Body 与 `{}` 不同：`{}` 会得到空的 `BODY_CANONICAL_STRING`，第四行是 `SHA256("")` 的结果。
+
+<Tip>
+  Query 与 Body 可以同时存在。Query 进入第三行，规范化 Body 的 SHA-256 进入第四行，两者都参与签名。
+</Tip>
 
 ### 签名原文示例
 
@@ -81,7 +159,7 @@ SHA256("amount=100&currency_code=USD")
 POST
 /api/merchant/payment/create
 
-8f2c1d3a5b7e9f...
+3700b81a05b325f430f69d44a947e299faf8763bbf72593acc46f5e89d6126ad
 <CURRENT_UNIX_MS>
 a3f7b2c1d4e5
 ```
@@ -182,6 +260,22 @@ curl -X POST "https://openapi.{{DOMAIN_BASE}}/api/merchant/payment/create" \
 ```
 
 ## 常见问题
+
+### 实际发送的 JSON Body 需要先排序吗？
+
+不需要。JSON 字段可以保持业务代码生成的顺序。你只需要在计算签名时解析同一份 Body，并按本页规则生成 `BODY_CANONICAL_STRING`。
+
+### POST 有 Body、没有 Query 时，第三行还要保留吗？
+
+要保留。第三行是空字符串，第四行是 Body 摘要。六行结构不能因为某一部分为空而缩减。
+
+### 请求同时有 Query 和 Body 时怎么签名？
+
+两者都参与签名：规范化 Query 放第三行，规范化 Body 的 SHA-256 放第四行。`REQUEST_URI` 只包含路径，不包含 `?` 及其后的 QueryString。
+
+### 数组怎样参与签名？
+
+对象数组保持原顺序，不添加索引；每个对象内部仍按 key 排序并深度优先展开。标量数组元素当前不会进入签名，请不要使用标量数组传递需要防篡改的业务参数。
 
 ### 签名验证失败？
 
